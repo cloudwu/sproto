@@ -79,10 +79,15 @@ encode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 	}
 	switch (type) {
 	case SPROTO_TINTEGER: {
-		int v = luaL_checkinteger(L, -1);
-		*(int *)value = v;
+		lua_Integer v = luaL_checkinteger(L, -1);
+		*(lua_Integer *)value = v;
 		lua_pop(L,1);
-		return 4;
+		// notice: in lua 5.2, lua_Integer maybe 52bit
+		lua_Integer vh = v >> 31;
+		if (vh == 0 || vh == -1)
+			return 4;
+		else
+			return 8;
 	}
 	case SPROTO_TBOOLEAN: {
 		int v = lua_toboolean(L, -1);
@@ -199,12 +204,13 @@ decode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 	}
 	switch (type) {
 	case SPROTO_TINTEGER: {
-		int v = *(int*)value;
+		// notice: in lua 5.2, 52bit integer support (not 64)
+		lua_Integer v = *(lua_Integer *)value;
 		lua_pushinteger(L, v);
 		break;
 	}
 	case SPROTO_TBOOLEAN: {
-		int v = *(int*)value;
+		int v = *(lua_Integer*)value;
 		lua_pushboolean(L,v);
 		break;
 	}
