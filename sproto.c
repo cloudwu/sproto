@@ -629,6 +629,93 @@ encode_struct(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int 
 	return fill_size(data, sz);
 }
 
+static inline void
+uint32_to_uint64(int negative, uint8_t *buffer) {
+	if (negative) {
+		buffer[4] = 0xff;
+		buffer[5] = 0xff;
+		buffer[6] = 0xff;
+		buffer[7] = 0xff;
+	} else {
+		buffer[4] = 0;
+		buffer[5] = 0;
+		buffer[6] = 0;
+		buffer[7] = 0;
+	}
+}
+
+static uint8_t *
+encode_integer_array(sproto_callback cb, void *ud, struct field *f, uint8_t *buffer, int size) {
+	uint8_t * header = buffer;
+	if (size < 1)
+		return NULL;
+	buffer++;
+	size--;
+	int intlen = sizeof(uint32_t);
+	int index = 1;
+	for (;;) {
+		union {
+			uint64_t u64;
+			uint32_t u32;
+		} u;
+		int sz = cb(ud, f->name, SPROTO_TINTEGER, index, f->st, &u, sizeof(u));
+		if (sz < 0)
+			return NULL;
+		if (sz == 0)
+			break;
+		if (size < sizeof(uint64_t))
+			return NULL;
+		if (sz == sizeof(uint32_t)) {
+			uint32_t v = u.u32;
+			buffer[0] = v & 0xff;
+			buffer[1] = (v >> 8) & 0xff;
+			buffer[2] = (v >> 16) & 0xff;
+			buffer[3] = (v >> 24) & 0xff;
+
+			if (intlen == sizeof(uint64_t)) {
+				uint32_to_uint64(v & 0x80000000, buffer);
+			}
+		} else {
+			if (sz != sizeof(uint64_t))
+				return NULL;
+			if (intlen == sizeof(uint32_t)) {
+				// rearrange
+				size -= (index-1) * sizeof(uint32_t);
+				if (size < sizeof(uint64_t))
+					return NULL;
+				buffer += (index-1) * sizeof(uint32_t);
+				int i;
+				for (i=index-2;i>=0;i--) {
+					memcpy(header+1+i*sizeof(uint64_t), header+1+i*sizeof(uint32_t), sizeof(uint32_t));
+					int negative = header[1+i*sizeof(uint64_t)+3] & 0x80;
+					uint32_to_uint64(negative, header+1+i*sizeof(uint64_t));
+				}
+				intlen = sizeof(uint64_t);
+			}
+
+			uint64_t v = u.u64;
+			buffer[0] = v & 0xff;
+			buffer[1] = (v >> 8) & 0xff;
+			buffer[2] = (v >> 16) & 0xff;
+			buffer[3] = (v >> 24) & 0xff;
+			buffer[4] = (v >> 32) & 0xff;
+			buffer[5] = (v >> 40) & 0xff;
+			buffer[6] = (v >> 48) & 0xff;
+			buffer[7] = (v >> 56) & 0xff;
+		}
+
+		size -= intlen;
+		buffer += intlen;
+		index++;
+	}
+
+	if (buffer == header + 1) {
+		return header;
+	}
+	*header = (uint8_t)intlen;
+	return buffer;
+}
+
 static int
 encode_array(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int size) {
 	if (size < SIZEOF_LENGTH)
@@ -639,54 +726,9 @@ encode_array(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int s
 	int type = f->type & ~SPROTO_TARRAY;
 	switch (type) {
 	case SPROTO_TINTEGER:
-		for (;;) {
-			union {
-				uint64_t u64;
-				uint32_t u32;
-			} u;
-			int sz = cb(ud, f->name, type, index, f->st, &u, sizeof(u));
-			if (sz < 0)
-				return -1;
-			if (sz == 0)
-				break;
-			if (size < sizeof(uint64_t))
-				return -1;
-			if (sz == sizeof(uint32_t)) {
-				uint32_t v = u.u32;
-				buffer[0] = v & 0xff;
-				buffer[1] = (v >> 8) & 0xff;
-				buffer[2] = (v >> 16) & 0xff;
-				buffer[3] = (v >> 24) & 0xff;
-
-				if (v & 0x80000000) {
-					buffer[4] = 0xff;
-					buffer[5] = 0xff;
-					buffer[6] = 0xff;
-					buffer[7] = 0xff;
-				} else {
-					buffer[4] = 0;
-					buffer[5] = 0;
-					buffer[6] = 0;
-					buffer[7] = 0;
-				}
-			} else {
-				if (sz != sizeof(uint64_t))
-					return -1;
-				uint64_t v = u.u64;
-				buffer[0] = v & 0xff;
-				buffer[1] = (v >> 8) & 0xff;
-				buffer[2] = (v >> 16) & 0xff;
-				buffer[3] = (v >> 24) & 0xff;
-				buffer[4] = (v >> 32) & 0xff;
-				buffer[5] = (v >> 40) & 0xff;
-				buffer[6] = (v >> 48) & 0xff;
-				buffer[7] = (v >> 56) & 0xff;
-			}
-
-			size -= sizeof(uint64_t);
-			buffer += sizeof(uint64_t);
-			index++;
-		}
+		buffer = encode_integer_array(cb,ud,f,buffer,size);
+		if (buffer == NULL)
+			return -1;
 		break;
 	case SPROTO_TBOOLEAN:
 		for (;;) {
@@ -839,31 +881,58 @@ decode_array_object(sproto_callback cb, void *ud, struct field *f, uint8_t * str
 	return 0;
 }
 
+static inline uint64_t
+expand64(uint32_t v) {
+	uint64_t value = v;
+	if (value & 0x80000000) {
+		value |= (uint64_t)~0  << 32 ;
+	}
+	return value;
+}
+
 static int
 decode_array(sproto_callback cb, void *ud, struct field *f, uint8_t * stream) {
 	uint32_t sz = todword(stream);
 	int type = f->type & ~SPROTO_TARRAY;
 	int i;
+	stream += SIZEOF_LENGTH;
 	switch (type) {
-	case SPROTO_TINTEGER:
-		if (sz % sizeof(uint64_t) != 0)
+	case SPROTO_TINTEGER: {
+		if (sz < 1)
 			return -1;
-		for (i=0;i<sz/sizeof(uint64_t);i++) {
-			uint64_t low = todword(stream + SIZEOF_LENGTH + i*sizeof(uint64_t));
-			uint64_t hi = todword(stream + SIZEOF_LENGTH + i*sizeof(uint64_t) + sizeof(uint32_t));
-			uint64_t value = low | hi << 32;
-			cb(ud, f->name, SPROTO_TINTEGER, i+1, NULL, &value, sizeof(value));
+		int len = *stream;
+		++stream;
+		--sz;
+		if (len == sizeof(uint32_t)) {
+			if (sz % sizeof(uint32_t) != 0)
+				return -1;
+			for (i=0;i<sz/sizeof(uint32_t);i++) {
+				uint64_t value = expand64(todword(stream + i*sizeof(uint32_t)));
+				cb(ud, f->name, SPROTO_TINTEGER, i+1, NULL, &value, sizeof(value));
+			}
+		} else if (len == sizeof(uint64_t)) {
+			if (sz % sizeof(uint64_t) != 0)
+				return -1;
+			for (i=0;i<sz/sizeof(uint64_t);i++) {
+				uint64_t low = todword(stream + i*sizeof(uint64_t));
+				uint64_t hi = todword(stream + i*sizeof(uint64_t) + sizeof(uint32_t));
+				uint64_t value = low | hi << 32;
+				cb(ud, f->name, SPROTO_TINTEGER, i+1, NULL, &value, sizeof(value));
+			}
+		} else {
+			return -1;
 		}
 		break;
+	}
 	case SPROTO_TBOOLEAN:
 		for (i=0;i<sz;i++) {
-			int value = stream[SIZEOF_LENGTH+i];
+			int value = stream[i];
 			cb(ud, f->name, SPROTO_TBOOLEAN, i+1, NULL, &value, sizeof(value));
 		}
 		break;
 	case SPROTO_TSTRING:
 	case SPROTO_TSTRUCT:
-		return decode_array_object(cb, ud, f, stream+SIZEOF_LENGTH, sz);
+		return decode_array_object(cb, ud, f, stream, sz);
 	default:
 		return -1;
 	}
@@ -916,10 +985,7 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 				case SPROTO_TINTEGER: {
 					uint32_t sz = todword(currentdata);
 					if (sz == sizeof(uint32_t)) {
-						uint64_t v = todword(currentdata + SIZEOF_LENGTH);
-						if (v & 0x8000000) {
-							v |= (uint64_t)~0  << 32 ;
-						} 
+						uint64_t v = expand64(todword(currentdata + SIZEOF_LENGTH));
 						cb(ud, f->name, SPROTO_TINTEGER, 0, NULL, &v, sizeof(v));
 					} else if (sz != sizeof(uint64_t)) {
 						return -1;
