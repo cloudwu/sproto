@@ -941,7 +941,7 @@ decode_array(sproto_callback cb, void *ud, struct field *f, uint8_t * stream) {
 
 int
 sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callback cb, void *ud) {
-	if (size < SIZEOF_LENGTH)
+	if (size < SIZEOF_HEADER)
 		return -1;
 	uint8_t * stream = (void *)data;
 	int fn = toword(stream);

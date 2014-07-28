@@ -40,6 +40,7 @@ local obj = {
 	g = { true, false, true },
 	h = {
 		{ b = 100 },
+		{},
 		{ b = -100, c= false },
 		{ b = 0, e = { "test" } },
 	},
