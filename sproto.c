@@ -917,7 +917,10 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 				case SPROTO_TINTEGER: {
 					uint32_t sz = todword(currentdata);
 					if (sz == sizeof(uint32_t)) {
-						uint32_t v = todword(currentdata + SIZEOF_LENGTH);
+						uint64_t v = todword(currentdata + SIZEOF_LENGTH);
+						if (v & 0x8000000) {
+							v |= (uint64_t)~0  << 32 ;
+						} 
 						cb(ud, f->name, SPROTO_TINTEGER, 0, NULL, &v, sizeof(v));
 					} else if (sz != sizeof(uint64_t)) {
 						return -1;
