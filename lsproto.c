@@ -1,10 +1,11 @@
 #include <string.h>
+#include <stdint.h>
 
 #include "lua.h"
 #include "lauxlib.h"
 #include "sproto.h"
 
-#define ENCODE_BUFFERSIZE 2
+#define ENCODE_BUFFERSIZE 2050
 
 //#define ENCODE_BUFFERSIZE 2050
 #define ENCODE_MAXSIZE 0x1000000
@@ -80,20 +81,23 @@ encode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 	switch (type) {
 	case SPROTO_TINTEGER: {
 		lua_Integer v = luaL_checkinteger(L, -1);
-		*(lua_Integer *)value = v;
 		lua_pop(L,1);
 		// notice: in lua 5.2, lua_Integer maybe 52bit
 		lua_Integer vh = v >> 31;
-		if (vh == 0 || vh == -1)
+		if (vh == 0 || vh == -1) {
+			*(uint32_t *)value = (uint32_t)v;
 			return 4;
-		else
+		}
+		else {
+			*(uint64_t *)value = (uint64_t)v;
 			return 8;
+		}
 	}
 	case SPROTO_TBOOLEAN: {
 		int v = lua_toboolean(L, -1);
 		*(int *)value = v;
 		lua_pop(L,1);
-		return 1;
+		return 4;
 	}
 	case SPROTO_TSTRING: {
 		size_t sz = 0;

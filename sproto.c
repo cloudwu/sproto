@@ -669,7 +669,6 @@ encode_array(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int s
 					buffer[6] = 0;
 					buffer[7] = 0;
 				}
-				return -1;
 			} else {
 				if (sz != sizeof(uint64_t))
 					return -1;
@@ -762,6 +761,7 @@ sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback c
 				if (sz == sizeof(uint32_t)) {
 					if (u.u32 < 0x7fff) {
 						value = (u.u32+1) * 2;
+						printf("value = %d\n", value);
 						sz = 2;	// sz can be any number > 0
 					} else {
 						sz = encode_integer(u.u32, data, size);
@@ -946,7 +946,8 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 		} else if (f->type != SPROTO_TINTEGER && f->type != SPROTO_TBOOLEAN) {
 			return -1;
 		} else {
-			cb(ud, f->name, f->type, 0, NULL, &value, sizeof(value));
+			uint64_t v = value;
+			cb(ud, f->name, f->type, 0, NULL, &v, sizeof(v));
 		}
 	}
 	return 0;
