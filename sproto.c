@@ -761,7 +761,6 @@ sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback c
 				if (sz == sizeof(uint32_t)) {
 					if (u.u32 < 0x7fff) {
 						value = (u.u32+1) * 2;
-						printf("value = %d\n", value);
 						sz = 2;	// sz can be any number > 0
 					} else {
 						sz = encode_integer(u.u32, data, size);
