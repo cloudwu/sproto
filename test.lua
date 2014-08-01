@@ -53,15 +53,17 @@ decode_time = tonumber(decode_time)
 local code
 
 for i=1,encode_time do
-	code = core.pack(core.encode(st, ab))
+--	code = core.pack(core.encode(st, ab))
+	code = core.encode(st, ab)
 end
 
 for i=1,decode_time do
-	local addr = core.decode(st, core.unpack(code))
-	for k,p in ipairs(addr.person) do
-		for k,v in ipairs(p.phone) do
-			for _,_ in pairs(v) do
-			end
-		end
-	end
+--	local addr = core.decode(st, core.unpack(code))
+	local addr = core.decode(st, code)
+--	for k,p in ipairs(addr.person) do
+--		for k,v in ipairs(p.phone) do
+--			for _,_ in pairs(v) do
+--			end
+--		end
+--	end
 end

@@ -499,9 +499,9 @@ query_proto(struct sproto *sp, int tag) {
 			return &sp->proto[mid];
 		}
 		if (tag > t) {
-			begin = t+1;
+			begin = mid+1;
 		} else {
-			end = t;
+			end = mid;
 		}
 	}
 	return NULL;

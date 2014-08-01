@@ -17,7 +17,7 @@ local sp = parser.parse [[
 	e 4 : *string
 	f 5 : *integer
 	g 6 : *boolean
-	h 7 : *foobar
+	h 7 : foobar
 }
 ]]
 
@@ -38,12 +38,13 @@ local obj = {
 	e = { "ABC", "def" },
 	f = { -3, -2, -1, 0 , 1, 2},
 	g = { true, false, true },
-	h = {
-		{ b = 100 },
-		{},
-		{ b = -100, c= false },
-		{ b = 0, e = { "test" } },
-	},
+	h = { b = 100 },
+--	h = {
+--		{ b = 100 },
+--		{},
+--		{ b = -100, c= false },
+--		{ b = 0, e = { "test" } },
+--	},
 }
 
 local code = core.encode(st, obj)
