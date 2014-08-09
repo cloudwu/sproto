@@ -1,10 +1,17 @@
 .PHONY : all win clean
 
-all : sproto.so
+all : linux
 win : sproto.dll
 
+# For Linux
+linux:
+	make sproto.so "DLLFLAGS = -shared -fPIC"
+# For Mac OS
+macosx:
+	make sproto.so "DLLFLAGS = -bundle -undefined dynamic_lookup"
+
 sproto.so : sproto.c lsproto.c
-	gcc -g -Wall -fPIC --shared -o $@ $^
+	env gcc -g -Wall $(DLLFLAGS) -o $@ $^
 
 sproto.dll : sproto.c lsproto.c
 	gcc -O2 -Wall --shared -o $@ $^ -I/usr/local/include -L/usr/local/bin -llua52
