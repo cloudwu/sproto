@@ -3,7 +3,7 @@ Introduction
 
 Sproto is an efficient serialization library for C, and focuses on lua binding. It's like Google protocol buffers, but much faster.
 
-The design is simple. It only supports a few types that lua supports. It can be easy bound to other dynamic languages, or be used directly in C.
+The design is simple. It only supports a few types that lua supports. It can be easily bound to other dynamic languages, or be used directly in C.
 
 In my i5-2500 @3.3GHz CPU, the benchmark is below:
 
