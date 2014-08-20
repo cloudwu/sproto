@@ -63,7 +63,7 @@ pool_release(struct pool *p) {
 	struct chunk * tmp = p->header;
 	while (tmp) {
 		struct chunk * n = tmp->next;
-		free(n);
+		free(tmp);
 		tmp = n;
 	}
 }
@@ -169,7 +169,7 @@ import_string(struct sproto *s, const uint8_t * stream) {
 	uint32_t sz = todword(stream);
 	char * buffer = pool_alloc(&s->memory, sz+1);
 	memcpy(buffer, stream+SIZEOF_LENGTH, sz);
-	buffer[sz] = 0;
+	buffer[sz] = '\0';
 	return buffer;
 }
 
