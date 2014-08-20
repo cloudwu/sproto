@@ -109,7 +109,7 @@ The sproto supports protocol tag for RPC. Use `sproto.protocol(tagorname)` to co
 Schema Language
 ==========
 
-Like Protocol Buffers (but unlike json) , sproto messages are strongly-typed and are not self-describing. You must define your message structure in a special language.
+Like Protocol Buffers (but unlike json), sproto messages are strongly-typed and are not self-describing. You must define your message structure in a special language.
 
 You can use sprotoparser library to parse the schema text to a binary string, so that the sproto library can use it. 
 You can parse them offline and save the string, or you can parse them during your program running.
