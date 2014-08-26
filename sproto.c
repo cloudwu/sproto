@@ -483,7 +483,7 @@ sproto_prototag(struct sproto *sp, const char * name) {
 	int i;
 	for (i=0;i<sp->protocol_n;i++) {
 		if (strcmp(name, sp->proto[i].name) == 0) {
-			return i;
+			return sp->proto[i].tag;
 		}
 	}
 	return -1;
