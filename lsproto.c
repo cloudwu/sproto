@@ -24,6 +24,16 @@ lnewproto(lua_State *L) {
 }
 
 static int
+ldelproto(lua_State *L) {
+	struct sproto * sp = lua_touserdata(L,1);
+	if (sp == NULL) {
+		return luaL_argerror(L, 1, "Need a sproto object");
+	}
+	sproto_release(sp);
+	return 0;
+}
+
+static int
 lquerytype(lua_State *L) {
 	struct sproto *sp = lua_touserdata(L,1);
 	if (sp == NULL) {
@@ -396,6 +406,7 @@ luaopen_sproto_core(lua_State *L) {
 	luaL_checkversion(L);
 	luaL_Reg l[] = {
 		{ "newproto", lnewproto },
+		{ "delproto", ldelproto },
 		{ "dumpproto", ldumpproto },
 		{ "querytype", lquerytype },
 		{ "decode", ldecode },
