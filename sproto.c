@@ -1032,6 +1032,7 @@ decode_array(sproto_callback cb, void *ud, struct field *f, uint8_t * stream) {
 
 int
 sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callback cb, void *ud) {
+	int total = size;
 	if (size < SIZEOF_HEADER)
 		return -1;
 	uint8_t * stream = (void *)data;
@@ -1106,7 +1107,7 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 			cb(ud, f->name, f->type, 0, NULL, &v, sizeof(v));
 		}
 	}
-	return 0;
+	return total - size;
 }
 
 // 0 pack

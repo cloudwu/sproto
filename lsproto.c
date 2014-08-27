@@ -24,6 +24,16 @@ lnewproto(lua_State *L) {
 }
 
 static int
+ldeleteproto(lua_State *L) {
+	struct sproto * sp = lua_touserdata(L,1);
+	if (sp == NULL) {
+		return luaL_argerror(L, 1, "Need a sproto object");
+	}
+	sproto_release(sp);
+	return 0;
+}
+
+static int
 lquerytype(lua_State *L) {
 	struct sproto *sp = lua_touserdata(L,1);
 	if (sp == NULL) {
@@ -35,6 +45,7 @@ lquerytype(lua_State *L) {
 		lua_pushlightuserdata(L, st);
 		return 1;
 	}
+
 	return luaL_error(L, "type %s not found", typename);
 }
 
@@ -232,7 +243,7 @@ decode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 		sub.array_tag = NULL;
 
 		int r = sproto_decode(st, value, length, decode, &sub);
-		if (r != 0)
+		if (r < 0 || r != length)
 			return r;
 		lua_settop(L, sub.result_index);
 		break;
@@ -245,6 +256,7 @@ decode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 	} else {
 		lua_setfield(L, self->result_index, tagname);
 	}
+
 	return 0;
 }
 
@@ -278,7 +290,9 @@ ldecode(lua_State *L) {
 	}
 	size_t sz=0;
 	const void * buffer = getbuffer(L, 2, &sz);
-	lua_newtable(L);
+	if (!lua_istable(L, -1)) {
+		lua_newtable(L);
+	}
 	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
 	struct decode_ud self;
 	self.L = L;
@@ -287,11 +301,12 @@ ldecode(lua_State *L) {
 	self.array_tag = NULL;
 	self.deep = 0;
 	int r = sproto_decode(st, buffer, (int)sz, decode, &self);
-	if (r) {
+	if (r < 0) {
 		return luaL_error(L, "decode error");
 	}
 	lua_settop(L, self.result_index);
-	return 1;
+	lua_pushinteger(L, r);
+	return 2;
 }
 
 static int
@@ -396,6 +411,7 @@ luaopen_sproto_core(lua_State *L) {
 	luaL_checkversion(L);
 	luaL_Reg l[] = {
 		{ "newproto", lnewproto },
+		{ "deleteproto", ldeleteproto },
 		{ "dumpproto", ldumpproto },
 		{ "querytype", lquerytype },
 		{ "decode", ldecode },
