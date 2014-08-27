@@ -1,8 +1,7 @@
-local parser = require "sprotoparser"
-local core = require "sproto.core"
+local sproto = require "sproto"
 local print_r = require "print_r"
 
-local sp = parser.parse [[
+local sp = sproto.parse [[
 .foobar {
 	.nest {
 		a 1 : string
@@ -21,11 +20,6 @@ local sp = parser.parse [[
 }
 ]]
 
-sp = core.newproto(sp)
-core.dumpproto(sp)
-
-local st = core.querytype(sp, "foobar")
-
 local obj = {
 	a = "hello",
 	b = 1000000,
@@ -38,18 +32,14 @@ local obj = {
 	e = { "ABC", "def" },
 	f = { -3, -2, -1, 0 , 1, 2},
 	g = { true, false, true },
-	h = { b = 100 },
---	h = {
---		{ b = 100 },
---		{},
---		{ b = -100, c= false },
---		{ b = 0, e = { "test" } },
---	},
+	h = {
+		{ b = 100 },
+		{},
+		{ b = -100, c= false },
+		{ b = 0, e = { "test" } },
+	},
 }
 
-local code = core.encode(st, obj)
-parser.dump(code)
-obj = core.decode(st, code)
+local code = sp:encode("foobar", obj)
+obj = sp:decode("foobar", code)
 print_r(obj)
-
-
