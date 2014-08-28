@@ -6,6 +6,13 @@
 struct sproto;
 struct sproto_type;
 
+struct sproto_protocol {
+    const char *name;
+    int tag;
+    struct sproto_type *request;
+    struct sproto_type *response;
+};
+
 #define SPROTO_REQUEST 0
 #define SPROTO_RESPONSE 1
 
@@ -17,10 +24,8 @@ struct sproto_type;
 struct sproto * sproto_create(const void * proto, size_t sz);
 void sproto_release(struct sproto *);
 
-int sproto_prototag(struct sproto *, const char * name);
-const char * sproto_protoname(struct sproto *, int proto);
-// SPROTO_REQUEST(0) : request, SPROTO_RESPONSE(1): response
-struct sproto_type * sproto_protoquery(struct sproto *, int proto, int what);
+int sproto_protoname(struct sproto *, const char * name, struct sproto_protocol *p);
+int sproto_prototag(struct sproto *, int tag, struct sproto_protocol *p);
 
 struct sproto_type * sproto_type(struct sproto *, const char * typename);
 

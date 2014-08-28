@@ -380,29 +380,20 @@ lprotocol(lua_State *L) {
 	}
 	int t = lua_type(L,2);
 	int tag;
+	struct sproto_protocol op = { NULL, 0, NULL, NULL};
 	if (t == LUA_TNUMBER) {
 		tag = lua_tointeger(L, 2);
-		const char * name = sproto_protoname(sp, tag);
-		if (name == NULL)
+		if (sproto_prototag(sp, tag, &op) == 0)
 			return 0;
-		lua_pushstring(L, name);
+		lua_pushstring(L, op.name);
 	} else {
 		const char * name = lua_tostring(L, 2);
-		tag = sproto_prototag(sp, name);
-		if (tag < 0)
+		if (sproto_protoname(sp, name, &op) == 0)
 			return 0;
-		lua_pushinteger(L, tag);
+		lua_pushinteger(L, op.tag);
 	}
-	struct sproto_type * request = sproto_protoquery(sp, tag, SPROTO_REQUEST);
-	if (request == NULL) {
-		return 0;
-	}
-	lua_pushlightuserdata(L, request);
-	struct sproto_type * response = sproto_protoquery(sp, tag, SPROTO_RESPONSE);
-	if (response == NULL) {
-		return 2;
-	}
-	lua_pushlightuserdata(L, response);
+	lua_pushlightuserdata(L, op.request);
+	lua_pushlightuserdata(L, op.response);
 	return 3;
 }
 
