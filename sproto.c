@@ -513,82 +513,75 @@ sproto_dump(struct sproto *s) {
 }
 
 static int
-_check_phid_8(struct sproto *sp, const char *name, uint32_t hid, int from) {
+_check_phid_8(struct sproto *sp, const char *name, uint32_t hid, int from, struct sproto_protocol *op) {
 	int i = 0;
 	for (i=from; i<from+8; i++) {
 		struct hashid *h = &sp->phid[i];
 		if (h->hid == hid) {
-			struct protocol *p = &sp->proto[h->idx];
-			if (strcmp(name, p->name) == 0) {
-				return p->tag;
+			struct protocol *ip = &sp->proto[h->idx];
+			if (strcmp(name, ip->name) == 0) {
+				op->name = ip->name;
+				op->tag = ip->tag;
+				op->request = ip->p[SPROTO_REQUEST];
+				op->response = ip->p[SPROTO_RESPONSE];
+				return 1;
 			}
 		}
 	}
-	return -1;
+	return 0;
 }
 
 // query
 int 
-sproto_prototag(struct sproto *sp, const char * name) {
-	uint32_t hid = hash(name, strlen(name));
-	int begin = 0, end = sp->protocol_n;
-	while (begin < end) {
-		int mid = (begin + end) / 2;
-		struct hashid *h = &sp->phid[mid];
-		if (h->hid == hid) {
-			struct protocol *p = &sp->proto[h->idx];
-			if (strcmp(name, p->name) == 0) {
-				return p->tag;
+sproto_protoname(struct sproto *sp, const char *name, struct sproto_protocol *op) {
+	if ( op ) {
+		uint32_t hid = hash(name, strlen(name));
+		int begin = 0, end = sp->protocol_n;
+		while (begin < end) {
+			int mid = (begin + end) / 2;
+			struct hashid *h = &sp->phid[mid];
+			if (h->hid == hid) {
+				struct protocol *ip = &sp->proto[h->idx];
+				if (strcmp(name, ip->name) == 0) {
+					op->name = ip->name;
+					op->tag = ip->tag;
+					op->request = ip->p[SPROTO_REQUEST];
+					op->response = ip->p[SPROTO_RESPONSE];
+					return 1;
+				}
+				return _check_phid_8(sp, name, hid, mid-4, op);
+			} else if (h->hid < hid) {
+				begin = mid + 1;
+			} else {
+				end = mid;
 			}
-			return _check_phid_8(sp, name, hid, mid-4);
-		}
-		else if (h->hid < hid) {
-			begin = mid + 1;
-		}
-		else {
-			end = mid;
 		}
 	}
-	return -1;
+	return 0;
 }
 
-static struct protocol *
-query_proto(struct sproto *sp, int tag) {
-	int begin = 0, end = sp->protocol_n;
-	while(begin<end) {
-		int mid = (begin+end)/2;
-		int t = sp->proto[mid].tag;
-		if (t==tag) {
-			return &sp->proto[mid];
+int
+sproto_prototag(struct sproto *sp, int tag, struct sproto_protocol *op) {
+	if ( op ) {
+		int begin = 0, end = sp->protocol_n;
+		while(begin<end) {
+			int mid = (begin+end)/2;
+			int t = sp->proto[mid].tag;
+			if (t==tag) {
+				struct protocol *ip = &sp->proto[mid];
+				op->name = ip->name;
+				op->tag = ip->tag;
+				op->request = ip->p[SPROTO_REQUEST];
+				op->response = ip->p[SPROTO_RESPONSE];
+				return 1;
+			} else if (tag > t) {
+				begin = mid+1;
+			} else {
+				end = mid;
+			}
 		}
-		if (tag > t) {
-			begin = mid+1;
-		} else {
-			end = mid;
-		}
 	}
-	return NULL;
-}
-
-struct sproto_type * 
-sproto_protoquery(struct sproto *sp, int proto, int what) {
-	if (what <0 || what >1) {
-		return NULL;
-	}
-	struct protocol * p = query_proto(sp, proto);
-	if (p) {
-		return p->p[what];
-	}
-	return NULL;
-}
-
-const char * 
-sproto_protoname(struct sproto *sp, int proto) {
-	struct protocol * p = query_proto(sp, proto);
-	if (p) {
-		return p->name;
-	}
-	return NULL;
+	return 0;
 }
 
 struct sproto_type *
@@ -619,11 +612,9 @@ sproto_type(struct sproto *sp, const char * typename) {
 				return t;
 			}
 			return _check_thid_8(sp, typename, hid, mid-4);
-		}
-		else if (h->hid < hid) {
+		} else if (h->hid < hid) {
 			begin = mid + 1;
-		}
-		else {
+		} else {
 			end = mid;
 		}
 	}
