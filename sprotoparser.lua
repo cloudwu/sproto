@@ -325,7 +325,7 @@ local function packgroup(t,p)
 		table.sort(tmp, function(a,b) return a.tag < b. tag end)
 
 		tp = {}
-		for _, tbl in pairs(tmp) do
+		for _, tbl in ipairs(tmp) do
 			table.insert(tp, packproto(tbl.name, tbl, alltypes))
 		end
 		tp = packbytes(table.concat(tp))
