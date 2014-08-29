@@ -318,7 +318,7 @@ ldecode(lua_State *L) {
 	size_t sz=0;
 	const void * buffer = getbuffer(L, 2, &sz);
 	if (!lua_istable(L, -1)) {
-	lua_newtable(L);
+		lua_newtable(L);
 	}
 	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
 	struct decode_ud self;
