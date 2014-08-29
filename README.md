@@ -106,6 +106,13 @@ local sproto = require "sproto.core"
 
 The sproto supports protocol tag for RPC. Use `sproto.protocol(tagorname)` to convert the protocol name to the tag id, or convert back from tag id to the name, and returns the request/response message type objects of this protocol.
 
+RPC API
+=======
+
+There is a lua wrapper for the core API for RPC .
+
+Read testrpc.lua for detail.
+
 Schema Language
 ==========
 
@@ -321,6 +328,10 @@ int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
 ```
 
 pack and unpack the message with the 0 packing algorithm.
+
+JIT
+=====
+You may also interest in https://github.com/lvzixun/sproto-JIT
 
 Question?
 ==========
