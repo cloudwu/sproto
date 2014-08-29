@@ -489,7 +489,7 @@ sproto_prototag(struct sproto *sp, const char * name) {
 	int i;
 	for (i=0;i<sp->protocol_n;i++) {
 		if (strcmp(name, sp->proto[i].name) == 0) {
-			return i;
+			return sp->proto[i].tag;
 		}
 	}
 	return -1;
@@ -949,6 +949,7 @@ decode_array(sproto_callback cb, void *ud, struct field *f, uint8_t * stream) {
 
 int
 sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callback cb, void *ud) {
+	int total = size;
 	uint8_t * stream;
 	uint8_t * datastream;
 	int fn;
@@ -1027,7 +1028,7 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 			cb(ud, f->name, f->type, 0, NULL, &v, sizeof(v));
 		}
 	}
-	return 0;
+	return total - size;
 }
 
 // 0 pack
