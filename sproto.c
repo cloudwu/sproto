@@ -1,8 +1,8 @@
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include "msvcint.h"
 
 #include "sproto.h"
 
@@ -535,10 +535,10 @@ sproto_protoname(struct sproto *sp, int proto) {
 }
 
 struct sproto_type * 
-sproto_type(struct sproto *sp, const char * typename) {
+sproto_type(struct sproto *sp, const char * type_name) {
 	int i;
 	for (i=0;i<sp->type_n;i++) {
-		if (strcmp(typename, sp->type[i].name) == 0) {
+		if (strcmp(type_name, sp->type[i].name) == 0) {
 			return &sp->type[i];
 		}
 	}
