@@ -1,6 +1,10 @@
 #ifndef sproto_h
 #define sproto_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 
 #ifdef _MSC_VER
@@ -58,5 +62,9 @@ int sproto_encode(struct sproto_type *, void * buffer, int size, sproto_callback
 // for debug use
 void sproto_dump(struct sproto *);
 const char * sproto_name(struct sproto_type *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
