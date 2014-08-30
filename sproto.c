@@ -70,7 +70,7 @@ pool_release(struct pool *p) {
 
 static void *
 pool_newchunk(struct pool *p, size_t sz) {
-	struct chunk * t = malloc(sz + sizeof(struct chunk));
+	struct chunk * t = (struct chunk *)malloc(sz + sizeof(struct chunk));
 	if (t == NULL)
 		return NULL;
 	t->next = p->header;
@@ -170,7 +170,7 @@ struct_field(const uint8_t * stream, size_t sz) {
 static const char *
 import_string(struct sproto *s, const uint8_t * stream) {
 	uint32_t sz = todword(stream);
-	char * buffer = pool_alloc(&s->memory, sz+1);
+	char * buffer = (char *)pool_alloc(&s->memory, sz+1);
 	memcpy(buffer, stream+SIZEOF_LENGTH, sz);
 	buffer[sz] = '\0';
 	return buffer;
@@ -286,7 +286,7 @@ import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 	int maxn = n;
 	int last = -1;
 	t->n = n;
-	t->f = pool_alloc(&s->memory, sizeof(struct field) * n);
+	t->f = (field *)pool_alloc(&s->memory, sizeof(struct field) * n);
 	for (i=0;i<n;i++) {
 		struct field *f = &t->f[i];
 		stream = import_field(s, f, stream);
@@ -392,11 +392,11 @@ create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 		if (i == 0) {
 			typedata = content+SIZEOF_LENGTH;
 			s->type_n = n;
-			s->type = pool_alloc(&s->memory, n * sizeof(*s->type));
+			s->type = (struct sproto_type *)pool_alloc(&s->memory, n * sizeof(*s->type));
 		} else {
 			protocoldata = content+SIZEOF_LENGTH;
 			s->protocol_n = n;
-			s->proto = pool_alloc(&s->memory, n * sizeof(*s->proto));
+			s->proto = (struct protocol *)pool_alloc(&s->memory, n * sizeof(*s->proto));
 		}
 		content += todword(content) + SIZEOF_LENGTH;
 	}
@@ -421,12 +421,12 @@ struct sproto *
 sproto_create(const void * proto, size_t sz) {
 	struct pool mem;
 	pool_init(&mem);
-	struct sproto * s = pool_alloc(&mem, sizeof(*s));
+	struct sproto * s = (struct sproto *)pool_alloc(&mem, sizeof(*s));
 	if (s == NULL)
 		return NULL;
 	memset(s, 0, sizeof(*s));
 	s->memory = mem;
-	if (create_from_bundle(s, proto, sz) == NULL) {
+	if (create_from_bundle(s, (const uint8_t *)proto, sz) == NULL) {
 		pool_release(&s->memory);
 		return NULL;
 	}
@@ -454,7 +454,7 @@ sproto_dump(struct sproto *s) {
 		printf("%s\n", t->name);
 		for (j=0;j<t->n;j++) {
 			char array[2] = { 0, 0 };
-			const char * typename = NULL;
+			const char * type_name = NULL;
 			struct field *f = &t->f[j];
 			if (f->type & SPROTO_TARRAY) {
 				array[0] = '*';
@@ -463,13 +463,13 @@ sproto_dump(struct sproto *s) {
 			}
 			int t = f->type & ~SPROTO_TARRAY;
 			if (t == SPROTO_TSTRUCT) {
-				typename = f->st->name;
+				type_name = f->st->name;
 			} else {
 				assert(t<SPROTO_TSTRUCT);
-				typename = buildin[t];
+				type_name = buildin[t];
 			}
 
-			printf("\t%s (%d) %s%s\n", f->name, f->tag, array, typename);
+			printf("\t%s (%d) %s%s\n", f->name, f->tag, array, type_name);
 		}
 	}
 	printf("=== %d protocol ===\n", s->protocol_n);
@@ -535,10 +535,10 @@ sproto_protoname(struct sproto *sp, int proto) {
 }
 
 struct sproto_type * 
-sproto_type(struct sproto *sp, const char * typename) {
+sproto_type(struct sproto *sp, const char * type_name) {
 	int i;
 	for (i=0;i<sp->type_n;i++) {
-		if (strcmp(typename, sp->type[i].name) == 0) {
+		if (strcmp(type_name, sp->type[i].name) == 0) {
 			return &sp->type[i];
 		}
 	}
@@ -777,7 +777,7 @@ encode_array(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int s
 
 int 
 sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback cb, void *ud) {
-	uint8_t * header = buffer;
+	uint8_t * header = (uint8_t *)buffer;
 	uint8_t * data;
 	int header_sz = SIZEOF_HEADER + st->maxn * SIZEOF_FIELD;
 	if (size < header_sz)
@@ -955,7 +955,7 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 	int fn;
 	if (size < SIZEOF_HEADER)
 		return -1;
-	stream = (void *)data;
+	stream = (uint8_t *)(void *)data;
 	fn = toword(stream);
 	stream += SIZEOF_HEADER;
 	size -= SIZEOF_HEADER ;
@@ -1086,8 +1086,8 @@ sproto_pack(const void * srcv, int srcsz, void * bufferv, int bufsz) {
 	uint8_t * ff_desstart = NULL;
 	int ff_n = 0;
 	int size = 0;
-	const uint8_t * src = srcv;
-	uint8_t * buffer = bufferv;
+	const uint8_t * src = (const uint8_t *)srcv;
+	uint8_t * buffer = (uint8_t *)bufferv;
 	for (i=0;i<srcsz;i+=8) {
 		int padding = i+8 - srcsz;
 		if (padding > 0) {
@@ -1133,8 +1133,8 @@ sproto_pack(const void * srcv, int srcsz, void * bufferv, int bufsz) {
 
 int 
 sproto_unpack(const void * srcv, int srcsz, void * bufferv, int bufsz) {
-	const uint8_t * src = srcv;
-	uint8_t * buffer = bufferv;
+	const uint8_t * src = (const uint8_t *)srcv;
+	uint8_t * buffer = (uint8_t *)bufferv;
 	int size = 0;
 	while (srcsz > 0) {
 		uint8_t header = src[0];
