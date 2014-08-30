@@ -322,7 +322,7 @@ local function packgroup(t,p)
 			table.insert(tmp, tbl)
 			tbl.name = name
 		end
-		table.sort(tmp, function(a,b) return a.tag < b. tag end)
+		table.sort(tmp, function(a,b) return a.tag < b.tag end)
 
 		tp = {}
 		for _, tbl in ipairs(tmp) do
