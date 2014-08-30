@@ -11,6 +11,33 @@
 #define ENCODE_MAXSIZE 0x1000000
 #define ENCODE_DEEPLEVEL 64
 
+#ifndef luaL_newlib /* using LuaJIT */
+/*
+** set functions from list 'l' into table at top - 'nup'; each
+** function gets the 'nup' elements at the top as upvalues.
+** Returns with only the table at the stack.
+*/
+LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
+#ifdef luaL_checkversion
+  luaL_checkversion(L);
+#endif
+  luaL_checkstack(L, nup, "too many upvalues");
+  for (; l->name != NULL; l++) {  /* fill the table with given functions */
+    int i;
+    for (i = 0; i < nup; i++)  /* copy upvalues to the top */
+      lua_pushvalue(L, -nup);
+    lua_pushcclosure(L, l->func, nup);  /* closure with those upvalues */
+    lua_setfield(L, -(nup + 2), l->name);
+  }
+  lua_pop(L, nup);  /* remove upvalues */
+}
+
+#define luaL_newlibtable(L,l) \
+  lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+
+#define luaL_newlib(L,l)  (luaL_newlibtable(L,l), luaL_setfuncs(L,l,0))
+#endif
+
 static int
 lnewproto(lua_State *L) {
 	size_t sz = 0;
@@ -408,7 +435,9 @@ lprotocol(lua_State *L) {
 
 int
 luaopen_sproto_core(lua_State *L) {
+#ifdef luaL_checkversion
 	luaL_checkversion(L);
+#endif
 	luaL_Reg l[] = {
 		{ "newproto", lnewproto },
 		{ "deleteproto", ldeleteproto },

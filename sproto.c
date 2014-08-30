@@ -122,9 +122,10 @@ count_array(const uint8_t * stream) {
 	stream += SIZEOF_LENGTH;
 	int n = 0;
 	while (length > 0) {
+		uint32_t nsz;
 		if (length < SIZEOF_LENGTH)
 			return -1;
-		uint32_t nsz = todword(stream);
+		nsz = todword(stream);
 		nsz += SIZEOF_LENGTH;
 		if (nsz > length)
 			return -1;
@@ -138,23 +139,25 @@ count_array(const uint8_t * stream) {
 
 static int
 struct_field(const uint8_t * stream, size_t sz) {
+	const uint8_t * field;
+	int fn, header, i;
 	if (sz < SIZEOF_LENGTH)
 		return -1;
-	int fn = toword(stream);
-	int header = SIZEOF_HEADER + SIZEOF_FIELD * fn;
+	fn = toword(stream);
+	header = SIZEOF_HEADER + SIZEOF_FIELD * fn;
 	if (sz < header)
 		return -1;
-	const uint8_t * field = stream + SIZEOF_HEADER;
+	field = stream + SIZEOF_HEADER;
 	sz -= header;
 	stream += header;
-	int i;
 	for (i=0;i<fn;i++) {
 		int value= toword(field + i * SIZEOF_FIELD + SIZEOF_HEADER);
+		uint32_t dsz;
 		if (value != 0)
 			continue;
 		if (sz < SIZEOF_LENGTH)
 			return -1;
-		uint32_t dsz = todword(stream);
+		dsz = todword(stream);
 		if (sz < SIZEOF_LENGTH + dsz)
 			return -1;
 		stream += SIZEOF_LENGTH + dsz;
@@ -175,14 +178,16 @@ import_string(struct sproto *s, const uint8_t * stream) {
 
 static const uint8_t *
 import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
+	uint32_t sz;
+	const uint8_t * result;
 	f->tag = -1;
 	f->type = -1;
 	f->name = NULL;
 	f->st = NULL;
 
-	uint32_t sz = todword(stream);
+	sz = todword(stream);
 	stream += SIZEOF_LENGTH;
-	const uint8_t * result = stream + sz;
+	result = stream + sz;
 	int fn = struct_field(stream, sz);
 	if (fn < 0)
 		return NULL;
@@ -191,8 +196,9 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	int array = 0;
 	int tag = -1;
 	for (i=0;i<fn;i++) {
+		int value;
 		++tag;
-		int value = toword(stream + SIZEOF_FIELD * i);
+		value = toword(stream + SIZEOF_FIELD * i);
 		if (value & 1) {
 			tag+= value/2;
 			continue;
@@ -235,7 +241,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 		return NULL;
 	f->type |= array;
 
-	return result;	
+	return result;
 }
 
 /*
@@ -254,12 +260,12 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 static const uint8_t *
 import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 	uint32_t sz = todword(stream);
+	int i;
 	stream += SIZEOF_LENGTH;
 	const uint8_t * result = stream + sz;
 	int fn = struct_field(stream, sz);
 	if (fn <= 0 || fn > 2)
 		return NULL;
-	int i;
 	for (i=0;i<fn*SIZEOF_FIELD;i+=SIZEOF_FIELD) {
 		// name and fields must encode to 0
 		int v = toword(stream + SIZEOF_HEADER + i);
@@ -772,10 +778,11 @@ encode_array(sproto_callback cb, void *ud, struct field *f, uint8_t *data, int s
 int 
 sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback cb, void *ud) {
 	uint8_t * header = buffer;
+	uint8_t * data;
 	int header_sz = SIZEOF_HEADER + st->maxn * SIZEOF_FIELD;
 	if (size < header_sz)
 		return -1;
-	uint8_t * data = header + header_sz;
+	data = header + header_sz;
 	size -= header_sz;
 	int i;
 	int index = 0;
@@ -862,12 +869,13 @@ sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback c
 
 static int
 decode_array_object(sproto_callback cb, void *ud, struct field *f, uint8_t * stream, int sz) {
+	uint32_t hsz;
 	int type = f->type & ~SPROTO_TARRAY;
 	int index = 1;
 	while (sz > 0) {
 		if (sz < SIZEOF_LENGTH)
 			return -1;
-		uint32_t hsz = todword(stream);
+		hsz = todword(stream);
 		stream += SIZEOF_LENGTH;
 		sz -= SIZEOF_LENGTH;
 		if (hsz > sz)
@@ -942,15 +950,18 @@ decode_array(sproto_callback cb, void *ud, struct field *f, uint8_t * stream) {
 int
 sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callback cb, void *ud) {
 	int total = size;
+	uint8_t * stream;
+	uint8_t * datastream;
+	int fn;
 	if (size < SIZEOF_HEADER)
 		return -1;
-	uint8_t * stream = (void *)data;
-	int fn = toword(stream);
+	stream = (void *)data;
+	fn = toword(stream);
 	stream += SIZEOF_HEADER;
 	size -= SIZEOF_HEADER ;
 	if (size < fn * SIZEOF_FIELD)
 		return -1;
-	uint8_t * datastream = stream + fn * SIZEOF_FIELD;
+	datastream = stream + fn * SIZEOF_FIELD;
 	size -= fn * SIZEOF_FIELD ;
 
 	int i;
@@ -965,9 +976,10 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 		value = value/2 - 1;
 		uint8_t * currentdata = datastream;
 		if (value < 0) {
+			uint32_t sz;
 			if (size < SIZEOF_LENGTH)
 				return -1;
-			uint32_t sz = todword(datastream);
+			sz = todword(datastream);
 			if (size < sz + SIZEOF_LENGTH)
 				return -1;
 			datastream += sz+SIZEOF_LENGTH;
