@@ -64,7 +64,7 @@ end
 
 function sproto:pdecode(typename, bin)
 	local st = querytype(self, typename)
-	return core.unpack(core.decode(st, bin))
+	return core.decode(st, core.unpack(bin))
 end
 
 local function queryproto(self, pname)
