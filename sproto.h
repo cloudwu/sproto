@@ -45,7 +45,7 @@ const char * sproto_protoname(struct sproto *, int proto);
 // SPROTO_REQUEST(0) : request, SPROTO_RESPONSE(1): response
 struct sproto_type * sproto_protoquery(struct sproto *, int proto, int what);
 
-struct sproto_type * sproto_type(struct sproto *, const char * typename);
+struct sproto_type * sproto_type(struct sproto *, const char * typename_);
 
 int sproto_pack(const void * src, int srcsz, void * buffer, int bufsz);
 int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
