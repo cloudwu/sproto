@@ -1,5 +1,5 @@
 #include <string.h>
-#include <stdint.h>
+#include "msvcint.h"
 
 #include "lua.h"
 #include "lauxlib.h"

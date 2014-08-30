@@ -3,29 +3,6 @@
 
 #include <stddef.h>
 
-#ifdef _MSC_VER
-# define inline __inline
-# ifndef _MSC_STDINT_H_
-#  if (_MSC_VER < 1300)
-typedef signed char       int8_t;
-typedef signed short      int16_t;
-typedef signed int        int32_t;
-typedef unsigned char     uint8_t;
-typedef unsigned short    uint16_t;
-typedef unsigned int      uint32_t;
-#  else
-typedef signed __int8     int8_t;
-typedef signed __int16    int16_t;
-typedef signed __int32    int32_t;
-typedef unsigned __int8   uint8_t;
-typedef unsigned __int16  uint16_t;
-typedef unsigned __int32  uint32_t;
-#  endif
-typedef signed __int64       int64_t;
-typedef unsigned __int64     uint64_t;
-# endif
-#endif
-
 struct sproto;
 struct sproto_type;
 
@@ -45,7 +22,7 @@ const char * sproto_protoname(struct sproto *, int proto);
 // SPROTO_REQUEST(0) : request, SPROTO_RESPONSE(1): response
 struct sproto_type * sproto_protoquery(struct sproto *, int proto, int what);
 
-struct sproto_type * sproto_type(struct sproto *, const char * typename);
+struct sproto_type * sproto_type(struct sproto *, const char * type_name);
 
 int sproto_pack(const void * src, int srcsz, void * buffer, int bufsz);
 int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
