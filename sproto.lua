@@ -94,13 +94,17 @@ function rpc:request(name, args, session)
 	header_tmp.type = proto.tag
 	header_tmp.session = session
 	local header = core.encode(self.__package, header_tmp)
-	local content = core.encode(proto.request, args)
 
 	if session then
 		self.__session[session] = assert(proto.response)
 	end
 
-	return core.pack(header ..  content)
+	if args then
+		local content = core.encode(proto.request, args)
+		return core.pack(header ..  content)
+	else
+		return core.pack(header)
+	end
 end
 
 local function gen_response(self, response, session)
@@ -113,8 +117,10 @@ local function gen_response(self, response, session)
 	end
 end
 
-function rpc:dispatch(bin)
-	bin = core.unpack(bin)
+function rpc:dispatch(...)
+	local bin = core.unpack(...)
+	header_tmp.type = nil
+	header_tmp.session = nil
 	local header, size = core.decode(self.__package, bin, header_tmp)
 	local content = bin:sub(size + 1)
 	if header.type then

@@ -208,7 +208,7 @@ The tag and small integer or boolean will be encoded in field part, and others a
 
 All the fields must be encoded in ascending order (by tag). The tags of fields can be discontinuous, if a field is nil. (default value in lua), don't encode it in message.
 
-The header is two 16bit integer. The first one is the number of fields, and the second one is the number of data.
+The header is a 16bit integer. It is the number of fields.
 
 Each field in field part is two 16bit integer. The first one is the tag increment. The base of tags is 0, if your tags in message in continuous, the tag increment will be zero. 
 the second one indicates the value of this field. If it is 0, the real value is encoded in data part, or minus 1 as the field value.
@@ -221,7 +221,7 @@ Example 1:
 ```
 person { name = "Alice" ,  age = 13, marital = false } 
 
-03 00 01 00 (fn = 3, dn = 1)
+03 00 (fn = 3)
 00 00 00 00 (id = 0, value in data part)
 00 00 0E 00 (id = 1, value = 13)
 00 00 01 00 (id = 2, value = false)
@@ -240,7 +240,7 @@ person {
     }
 }
 
-04 00 02 00 (fn = 4, dn = 2)
+04 00 (fn = 4)
 00 00 00 00 (id = 0, value in data part)
 00 00 29 00 (id = 1, value = 40)
 01 00 00 00 (id = 3 / skip id 2, value in data part)
@@ -248,8 +248,8 @@ person {
 03 00 00 00 (sizeof "Bob")
 42 6F 62 ("Bob")
 
-19 00 00 00 (sizeof struct)
-03 00 01 00 (fn = 3, dn = 1)
+17 00 00 00 (sizeof struct)
+03 00 (fn = 3)
 00 00 00 00 (id = 0, ref = 0)
 00 00 0E 00 (id = 1, value = 13)
 00 00 01 00 (id = 2, value = false)

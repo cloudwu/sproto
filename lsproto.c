@@ -294,7 +294,7 @@ getbuffer(lua_State *L, int index, size_t *sz) {
 	if (t == LUA_TSTRING) {
 		buffer = lua_tolstring(L, index, sz);
 	} else {
-		if (t != LUA_TUSERDATA) {
+		if (t != LUA_TUSERDATA && t != LUA_TLIGHTUSERDATA) {
 			luaL_argerror(L, index, "Need a string or userdata");
 			return NULL;
 		}
