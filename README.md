@@ -210,8 +210,12 @@ All the fields must be encoded in ascending order (by tag). The tags of fields c
 
 The header is a 16bit integer. It is the number of fields.
 
-Each field in field part is two 16bit integer. The first one is the tag increment. The base of tags is 0, if your tags in message in continuous, the tag increment will be zero. 
-the second one indicates the value of this field. If it is 0, the real value is encoded in data part, or minus 1 as the field value.
+Each field in field part is a 16bit integer (n). If n is zero, that means the field data is encoded in data part ;
+
+If n is even (and not zero), the value of this field is n/2-1 ;
+
+If n is odd, that means the tags is not continuous, and we should add current tag by (n+1)/2 .
+
 Read the examples below to see more details.
 
 Notice: If the tag is not declared in schema, the decoder will simply ignore the field for protocol version compatibility.
@@ -222,9 +226,9 @@ Example 1:
 person { name = "Alice" ,  age = 13, marital = false } 
 
 03 00 (fn = 3)
-00 00 00 00 (id = 0, value in data part)
-00 00 0E 00 (id = 1, value = 13)
-00 00 01 00 (id = 2, value = false)
+00 00 (id = 0, value in data part)
+1C 00 (id = 1, value = 13)
+02 00 (id = 2, value = false)
 05 00 00 00 (sizeof "Alice")
 41 6C 69 63 65 ("Alice")
 ```
@@ -241,18 +245,19 @@ person {
 }
 
 04 00 (fn = 4)
-00 00 00 00 (id = 0, value in data part)
-00 00 29 00 (id = 1, value = 40)
-01 00 00 00 (id = 3 / skip id 2, value in data part)
+00 00 (id = 0, value in data part)
+52 00 (id = 1, value = 40)
+01 00 (skip id = 2)
+00 00 (id = 3, value in data part)
 
 03 00 00 00 (sizeof "Bob")
 42 6F 62 ("Bob")
 
-17 00 00 00 (sizeof struct)
+11 00 00 00 (sizeof struct)
 03 00 (fn = 3)
-00 00 00 00 (id = 0, ref = 0)
-00 00 0E 00 (id = 1, value = 13)
-00 00 01 00 (id = 2, value = false)
+00 00 (id = 0, value in data part)
+1C 00 (id = 1, value = 13)
+02 00 (id = 2, value = false)
 05 00 00 00 (sizeof "Alice")
 41 6C 69 63 65 ("Alice")
 ```
