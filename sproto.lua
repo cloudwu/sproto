@@ -1,11 +1,12 @@
 local core = require "sproto.core"
+local assert = assert
 
 local sproto = {}
-local rpc = {}
+local host = {}
 
 local weak_mt = { __mode = "kv" }
 local sproto_mt = { __index = sproto }
-local rpc_mt = { __index = rpc }
+local host_mt = { __index = host }
 
 function sproto_mt:__gc()
 	core.deleteproto(self.__cobj)
@@ -27,14 +28,14 @@ function sproto.parse(ptext)
 	return sproto.new(pbin)
 end
 
-function sproto:rpc( packagename )
+function sproto:host( packagename )
 	packagename = packagename or  "package"
 	local obj = {
 		__proto = self,
 		__package = core.querytype(self.__cobj, packagename),
 		__session = {},
 	}
-	return setmetatable(obj, rpc_mt)
+	return setmetatable(obj, host_mt)
 end
 
 local function querytype(self, typename)
@@ -89,23 +90,6 @@ local function queryproto(self, pname)
 end
 
 local header_tmp = {}
-function rpc:request(name, args, session)
-	local proto = queryproto(self.__proto, name)
-	header_tmp.type = proto.tag
-	header_tmp.session = session
-	local header = core.encode(self.__package, header_tmp)
-
-	if session then
-		self.__session[session] = assert(proto.response)
-	end
-
-	if args then
-		local content = core.encode(proto.request, args)
-		return core.pack(header ..  content)
-	else
-		return core.pack(header)
-	end
-end
 
 local function gen_response(self, response, session)
 	return function(args)
@@ -117,7 +101,7 @@ local function gen_response(self, response, session)
 	end
 end
 
-function rpc:dispatch(...)
+function host:dispatch(...)
 	local bin = core.unpack(...)
 	header_tmp.type = nil
 	header_tmp.session = nil
@@ -126,19 +110,14 @@ function rpc:dispatch(...)
 	if header.type then
 		-- request
 		local proto = queryproto(self.__proto, header.type)
+		local result
 		if proto.request then
-			local result = core.decode(proto.request, content)
-			if header_tmp.session then
-				return "REQUEST", proto.name, result, gen_response(self, proto.response, header_tmp.session)
-			else
-				return "REQUEST", proto.name, result
-			end
+			result = core.decode(proto.request, content)
+		end
+		if header_tmp.session then
+			return "REQUEST", proto.name, result, gen_response(self, proto.response, header_tmp.session)
 		else
-			if header_tmp.session then
-				return "REQUEST", proto.name, nil, gen_response(self, proto.response, header_tmp.session)
-			else
-				return "REQUEST", proto.name
-			end
+			return "REQUEST", proto.name, result
 		end
 	else
 		-- response
@@ -146,6 +125,26 @@ function rpc:dispatch(...)
 		local response = assert(self.__session[session], "Unknown session")
 		self.__session[session] = nil
 		return "RESPONSE", session, core.decode(response, content)
+	end
+end
+
+function host:attach(sp)
+	return function(name, args, session)
+		local proto = queryproto(sp, name)
+		header_tmp.type = proto.tag
+		header_tmp.session = session
+		local header = core.encode(self.__package, header_tmp)
+
+		if session then
+			self.__session[session] = assert(proto.response)
+		end
+
+		if args then
+			local content = core.encode(proto.request, args)
+			return core.pack(header ..  content)
+		else
+			return core.pack(header)
+		end
 	end
 end
 

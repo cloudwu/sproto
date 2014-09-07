@@ -1,7 +1,7 @@
 local sproto = require "sproto"
 local print_r = require "print_r"
 
-sp = sproto.parse [[
+local server_proto = sproto.parse [[
 .package {
 	type 0 : integer
 	session 1 : integer
@@ -29,12 +29,20 @@ blackhole 4 {
 }
 ]]
 
+local client_proto = sproto.parse [[
+.package {
+	type 0 : integer
+	session 1 : integer
+}
+]]
+
 -- The type package must has two field : type and session
-local server = sp:rpc "package"
-local client = sp:rpc "package"
+local server = server_proto:host "package"
+local client = client_proto:host "package"
+local client_request = client:attach(server_proto)
 
 print("client request foobar")
-local req = client:request("foobar", { what = "foo" }, 1)
+local req = client_request("foobar", { what = "foo" }, 1)
 print("request foobar size =", #req)
 local type, name, request, response = server:dispatch(req)
 assert(type == "REQUEST" and name == "foobar")
@@ -47,7 +55,7 @@ local type, session, response = client:dispatch(resp)
 assert(type == "RESPONSE" and session == 1)
 print_r(response)
 
-local req = client:request("foo", nil, 2)
+local req = client_request("foo", nil, 2)
 print("request foo size =", #req)
 local type, name, request, response = server:dispatch(req)
 assert(type == "REQUEST" and name == "foo" and request == nil)
@@ -58,12 +66,12 @@ local type, session, response = client:dispatch(resp)
 assert(type == "RESPONSE" and session == 2)
 print_r(response)
 
-local req = client:request("bar")	-- bar has no response
+local req = client_request("bar")	-- bar has no response
 print("request bar size =", #req)
 local type, name, request, response = server:dispatch(req)
 assert(type == "REQUEST" and name == "bar" and request == nil and response == nil)
 
-local req = client:request "blackhole"
+local req = client_request "blackhole"
 print("request blackhole size = ", #req)
 
 
