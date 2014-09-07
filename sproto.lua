@@ -96,8 +96,12 @@ local function gen_response(self, response, session)
 		header_tmp.type = nil
 		header_tmp.session = session
 		local header = core.encode(self.__package, header_tmp)
-		local content = core.encode(response, args)
-		return core.pack(header .. content)
+		if response then
+			local content = core.encode(response, args)
+			return core.pack(header .. content)
+		else
+			return core.pack(header)
+		end
 	end
 end
 
@@ -124,7 +128,12 @@ function host:dispatch(...)
 		local session = assert(header_tmp.session, "session not found")
 		local response = assert(self.__session[session], "Unknown session")
 		self.__session[session] = nil
-		return "RESPONSE", session, core.decode(response, content)
+		if response == true then
+			return "RESPONSE", session
+		else
+			local result = core.decode(response, content)
+			return "RESPONSE", session, result
+		end
 	end
 end
 
@@ -136,7 +145,7 @@ function host:attach(sp)
 		local header = core.encode(self.__package, header_tmp)
 
 		if session then
-			self.__session[session] = assert(proto.response)
+			self.__session[session] = proto.response or true
 		end
 
 		if args then
