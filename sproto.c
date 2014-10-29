@@ -119,8 +119,8 @@ todword(const uint8_t *p) {
 static int
 count_array(const uint8_t * stream) {
 	uint32_t length = todword(stream);
-	stream += SIZEOF_LENGTH;
 	int n = 0;
+	stream += SIZEOF_LENGTH;
 	while (length > 0) {
 		uint32_t nsz;
 		if (length < SIZEOF_LENGTH)
