@@ -16,7 +16,7 @@ local sp = sproto.parse [[
 	e 4 : *string
 	f 5 : *integer
 	g 6 : *boolean
-	h 7 : foobar
+	h 7 : *foobar
 }
 ]]
 
