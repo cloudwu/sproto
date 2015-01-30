@@ -144,7 +144,7 @@ The schema text is like this:
 }
 
 foobar 1 {	# define a new protocol (for RPC used) with tag 1
-    request person	# Associate the type person with foobar.request
+    request Person	# Associate the type Person with foobar.request
     response {	# define the foobar.response type
         ok 0 : boolean
     }
@@ -183,7 +183,7 @@ Types
 =======
 
 * **string** : binary string
-* **integer** : integer, the max length of a integer is signed 64bit.
+* **integer** : integer, the max length of an integer is signed 64bit.
 * **boolean** : true or false
 
 You can add * before the typename to declare an array.
