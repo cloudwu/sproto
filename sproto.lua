@@ -53,9 +53,9 @@ function sproto:encode(typename, tbl)
 	return core.encode(st, tbl)
 end
 
-function sproto:decode(typename, bin)
+function sproto:decode(typename, ...)
 	local st = querytype(self, typename)
-	return core.decode(st, bin)
+	return core.decode(st, ...)
 end
 
 function sproto:pencode(typename, tbl)
@@ -63,9 +63,9 @@ function sproto:pencode(typename, tbl)
 	return core.pack(core.encode(st, tbl))
 end
 
-function sproto:pdecode(typename, bin)
+function sproto:pdecode(typename, ...)
 	local st = querytype(self, typename)
-	return core.decode(st, core.unpack(bin))
+	return core.decode(st, core.unpack(...))
 end
 
 local function queryproto(self, pname)
