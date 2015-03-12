@@ -1,6 +1,40 @@
 local lpeg = require "lpeg"
-local bit32 = require "bit32"
 local table = require "table"
+
+local packbytes
+local packvalue
+
+if _VERSION == "Lua 5.3" then
+	function packbytes(str)
+		return string.pack("<s4",str)
+	end
+
+	function packvalue(id)
+		id = (id + 1) * 2
+		assert(id >=0 and id < 65536)
+		return string.pack("<I2",id)
+	end
+else
+	function packbytes(str)
+		local size = #str
+		local a = size % 256
+		size = math.floor(size / 256)
+		local b = size % 256
+		size = math.floor(size / 256)
+		local c = size % 256
+		size = math.floor(size / 256)
+		local d = size
+		return string.format("%c%c%c%c",a,b,c,d) .. str
+	end
+
+	function packvalue(id)
+		id = (id + 1) * 2
+		assert(id >=0 and id < 65536)
+		local a = id % 256
+		local b = math.floor(id / 256)
+		return string.char(a) .. string.char(b)
+	end
+end
 
 local P = lpeg.P
 local S = lpeg.S
@@ -194,21 +228,6 @@ end
 	protocol 1 : *protocol
 }
 ]]
-
-local function packbytes(str)
-	local size = #str
-	return string.char(bit32.extract(size,0,8))..
-		string.char(bit32.extract(size,8,8))..
-		string.char(bit32.extract(size,16,8))..
-		string.char(bit32.extract(size,24,8))..
-		str
-end
-
-local function packvalue(id)
-	id = (id + 1) * 2
-	assert(id >=0 and id < 65536)
-	return string.char(bit32.extract(id, 0, 8)) .. string.char(bit32.extract(id, 8, 8))
-end
 
 local function packfield(f)
 	local strtbl = {}
