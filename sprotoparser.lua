@@ -11,7 +11,6 @@ if _VERSION == "Lua 5.3" then
 
 	function packvalue(id)
 		id = (id + 1) * 2
-		assert(id >=0 and id < 65536)
 		return string.pack("<I2",id)
 	end
 else
