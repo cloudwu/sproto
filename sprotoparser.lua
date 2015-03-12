@@ -69,6 +69,7 @@ local word = alpha * alnum ^ 0
 local name = C(word)
 local typename = C(word * ("." * word) ^ 0)
 local tag = R"09" ^ 1 / tonumber
+local mainkey = "(" * blank0 * name * blank0 * ")"
 
 local function multipat(pat)
 	return Ct(blank0 * (pat * blanks) ^ 0 * pat^0 * blank0)
@@ -80,7 +81,7 @@ end
 
 local typedef = P {
 	"ALL",
-	FIELD = namedpat("field", (name * blanks * tag * blank0 * ":" * blank0 * (C"*")^0 * typename)),
+	FIELD = namedpat("field", (name * blanks * tag * blank0 * ":" * blank0 * (C"*")^0 * typename * mainkey^0)),
 	STRUCT = P"{" * multipat(V"FIELD" + V"TYPE") * P"}",
 	TYPE = namedpat("type", P"." * name * blank0 * V"STRUCT" ),
 	SUBPROTO = Ct((C"request" + C"response") * blanks * (name + V"STRUCT")),
@@ -130,6 +131,11 @@ function convert.type(all, obj)
 			if fieldtype == "*" then
 				field.array = true
 				fieldtype = f[4]
+			end
+			local mainkey = f[4]
+			if mainkey then
+				assert(filedtype == "*")
+				filed.key = mainkey
 			end
 			field.typename = fieldtype
 		else
@@ -210,6 +216,7 @@ end
 		type 2 : integer
 		tag	3 :	integer
 		array 4	: boolean
+		key 5 : string # If key exists, array must be true, and it's a map.
 	}
 	name 0 : string
 	fields 1 : *field
@@ -231,11 +238,15 @@ end
 local function packfield(f)
 	local strtbl = {}
 	if f.array then
-		table.insert(strtbl, "\5\0")  -- 5 fields
+		if f.key then
+			table.insert(strtbl, "\6\0")  -- 6 fields
+		else
+			table.insert(strtbl, "\5\0")  -- 5 fields
+		end
 	else
 		table.insert(strtbl, "\4\0")	-- 4 fields
 	end
-	table.insert(strtbl, "\0\0")	-- name	(tag = 0, ref =0)
+	table.insert(strtbl, "\0\0")	-- name	(tag = 0, ref an object)
 	if f.buildin then
 		table.insert(strtbl, packvalue(f.buildin))	-- buildin (tag = 1)
 		table.insert(strtbl, "\1\0")	-- skip (tag = 2)
@@ -248,7 +259,13 @@ local function packfield(f)
 	if f.array then
 		table.insert(strtbl, packvalue(1))	-- array = true (tag = 4)
 	end
-	table.insert(strtbl, packbytes(f.name))
+	if f.key then
+		table.insert(strtbl, "\0\0")	-- key (tag = 5, ref an object)
+		table.insert(strtbl, packbytes(f.name))	-- external object (name)
+		table.insert(strtbl, packbytes(f.key))	-- external object (key)
+	else
+		table.insert(strtbl, packbytes(f.name)) -- external object (name)
+	end
 	return packbytes(table.concat(strtbl))
 end
 

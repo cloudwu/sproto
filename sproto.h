@@ -27,6 +27,8 @@ struct sproto_type * sproto_type(struct sproto *, const char * type_name);
 int sproto_pack(const void * src, int srcsz, void * buffer, int bufsz);
 int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
 
+// index is the array index (base 1), or 0 where not an array. 
+// -1 means it's the main key (key type should be SPROTO_TINTEGER or SPROTO_TSTRING)
 typedef int (*sproto_callback)(void *ud, const char *tagname, int type, int index, struct sproto_type *, void *value, int length);
 
 int sproto_decode(struct sproto_type *, const void * data, int size, sproto_callback cb, void *ud);
