@@ -16,12 +16,12 @@ local sp = parser.parse [[
 }
 
 .AddressBook {
-	person 0 : *Person
+	person 0 : *Person(id)
 }
 ]]
 
 sp = core.newproto(sp)
---core.dumpproto(sp)
+core.dumpproto(sp)
 local st = core.querytype(sp, "AddressBook")
 
 local ab = {
@@ -57,6 +57,8 @@ for i=1,encode_time do
 --	code = core.pack(core.encode(st, ab))
 	code = core.encode(st, ab)
 end
+
+print("======================")
 
 for i=1,decode_time do
 --	local addr = core.decode(st, core.unpack(code))

@@ -132,10 +132,10 @@ function convert.type(all, obj)
 				field.array = true
 				fieldtype = f[4]
 			end
-			local mainkey = f[4]
+			local mainkey = f[5]
 			if mainkey then
-				assert(filedtype == "*")
-				filed.key = mainkey
+				assert(field.array)
+				field.key = mainkey
 			end
 			field.typename = fieldtype
 		else
@@ -216,7 +216,7 @@ end
 		type 2 : integer
 		tag	3 :	integer
 		array 4	: boolean
-		key 5 : string # If key exists, array must be true, and it's a map.
+		key 5 : integer # If key exists, array must be true, and it's a map.
 	}
 	name 0 : string
 	fields 1 : *field
@@ -260,12 +260,9 @@ local function packfield(f)
 		table.insert(strtbl, packvalue(1))	-- array = true (tag = 4)
 	end
 	if f.key then
-		table.insert(strtbl, "\0\0")	-- key (tag = 5, ref an object)
-		table.insert(strtbl, packbytes(f.name))	-- external object (name)
-		table.insert(strtbl, packbytes(f.key))	-- external object (key)
-	else
-		table.insert(strtbl, packbytes(f.name)) -- external object (name)
+		table.insert(strtbl, packvalue(f.key)) -- key tag (tag = 5)
 	end
+	table.insert(strtbl, packbytes(f.name)) -- external object (name)
 	return packbytes(table.concat(strtbl))
 end
 
@@ -278,11 +275,20 @@ local function packtype(name, t, alltypes)
 		tmp.tag = f.tag
 
 		tmp.buildin = buildin_types[f.typename]
+		local subtype
 		if not tmp.buildin then
-			tmp.type = assert(alltypes[f.typename])
+			subtype = assert(alltypes[f.typename])
+			tmp.type = subtype.id
 		else
 			tmp.type = nil
 		end
+		if f.key then
+			tmp.key = subtype.fields[f.key]
+			if not tmp.key then
+				error("Invalid map index :" .. f.key)
+			end
+		end
+
 		table.insert(fields, packfield(tmp))
 	end
 	local data
@@ -314,6 +320,7 @@ local function packproto(name, p, alltypes)
 		if request == nil then
 			error(string.format("Protocol %s request type %s not found", name, p.request))
 		end
+		request = request.id
 	end
 	local tmp = {
 		"\4\0",	-- 4 fields
@@ -324,12 +331,12 @@ local function packproto(name, p, alltypes)
 		tmp[1] = "\2\0"
 	else
 		if p.request then
-			table.insert(tmp, packvalue(alltypes[p.request])) -- request typename (tag=2)
+			table.insert(tmp, packvalue(alltypes[p.request].id)) -- request typename (tag=2)
 		else
 			table.insert(tmp, "\1\0")
 		end
 		if p.response then
-			table.insert(tmp, packvalue(alltypes[p.response])) -- request typename (tag=3)
+			table.insert(tmp, packvalue(alltypes[p.response].id)) -- request typename (tag=3)
 		else
 			tmp[1] = "\3\0"
 		end
@@ -352,7 +359,13 @@ local function packgroup(t,p)
 	end
 	table.sort(alltypes)	-- make result stable
 	for idx, name in ipairs(alltypes) do
-		alltypes[name] = idx - 1
+		local fields = {}
+		for _, type_fields in ipairs(t[name]) do
+			if buildin_types[type_fields.typename] then
+				fields[type_fields.name] = type_fields.tag
+			end
+		end
+		alltypes[name] = { id = idx - 1, fields = fields }
 	end
 	tt = {}
 	for _,name in ipairs(alltypes) do

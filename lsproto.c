@@ -258,23 +258,7 @@ decode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 			}
 		}
 	}
-	switch (type) {
-	case SPROTO_TINTEGER: {
-		// notice: in lua 5.2, 52bit integer support (not 64)
-		lua_Integer v = *(uint64_t*)value;
-		lua_pushinteger(L, v);
-		break;
-	}
-	case SPROTO_TBOOLEAN: {
-		int v = *(uint64_t*)value;
-		lua_pushboolean(L,v);
-		break;
-	}
-	case SPROTO_TSTRING: {
-		lua_pushlstring(L, value, length);
-		break;
-	}
-	case SPROTO_TSTRUCT: {
+	if (st) {
 		struct decode_ud sub;
 		int r;
 		lua_newtable(L);
@@ -284,14 +268,34 @@ decode(void *ud, const char *tagname, int type, int index, struct sproto_type *s
 		sub.array_index = 0;
 		sub.array_tag = NULL;
 
-		r = sproto_decode(st, value, length, decode, &sub);
+		// type is the mainkey
+		r = sproto_decode(st, value, length, decode, &sub, type);
 		if (r < 0 || r != length)
 			return r;
 		lua_settop(L, sub.result_index);
-		break;
-	}
-	default:
-		luaL_error(L, "Invalid type");
+	} else {
+		switch (type) {
+		case SPROTO_TINTEGER: {
+			// notice: in lua 5.2, 52bit integer support (not 64)
+			lua_Integer v = *(uint64_t*)value;
+			lua_pushinteger(L, v);
+			break;
+		}
+		case SPROTO_TBOOLEAN: {
+			int v = *(uint64_t*)value;
+			lua_pushboolean(L,v);
+			break;
+		}
+		case SPROTO_TSTRING: {
+			lua_pushlstring(L, value, length);
+			break;
+		}
+		default:
+			luaL_error(L, "Invalid type");
+		}
+		if (index < 0) {
+			//todo: update key
+		}
 	}
 	if (index > 0) {
 		lua_rawseti(L, self->array_index, index);
@@ -339,13 +343,13 @@ ldecode(lua_State *L) {
 	if (!lua_istable(L, -1)) {
 		lua_newtable(L);
 	}
-	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
+	luaL_checkstack(L, ENCODE_DEEPLEVEL*3 + 8, NULL);
 	self.L = L;
 	self.result_index = lua_gettop(L);
 	self.array_index = 0;
 	self.array_tag = NULL;
 	self.deep = 0;
-	r = sproto_decode(st, buffer, (int)sz, decode, &self);
+	r = sproto_decode(st, buffer, (int)sz, decode, &self, -1);
 	if (r < 0) {
 		return luaL_error(L, "decode error");
 	}
