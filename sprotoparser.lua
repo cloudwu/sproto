@@ -23,7 +23,7 @@ else
 		local c = size % 256
 		size = math.floor(size / 256)
 		local d = size
-		return string.format("%c%c%c%c",a,b,c,d) .. str
+		return string.char(a)..string.char(b)..string.char(c)..string.char(d) .. str
 	end
 
 	function packvalue(id)
