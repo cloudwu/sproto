@@ -36,11 +36,11 @@ struct sproto_arg {
 	void *value;
 	int length;
 	int index;	// array base 1
+	int mainindex;	// for map
 };
 
 typedef int (*sproto_callback)(const struct sproto_arg *args);
 
-// default keytag is -1.
 int sproto_decode(struct sproto_type *, const void * data, int size, sproto_callback cb, void *ud);
 int sproto_encode(struct sproto_type *, void * buffer, int size, sproto_callback cb, void *ud);
 

@@ -18,6 +18,7 @@ local sp = parser.parse [[
 
 .AddressBook {
 	person 0 : *Person(id)
+	others 1 : *Person
 }
 ]]
 
@@ -27,7 +28,7 @@ local st = core.querytype(sp, "AddressBook")
 
 local ab = {
 	person = {
-		{
+		[10000] = {
 			name = "Alice",
 			id = 10000,
 			phone = {
@@ -35,13 +36,22 @@ local ab = {
 				{ number = "87654321" , type = 2 },
 			}
 		},
-		{
+		[20000] = {
 			name = "Bob",
 			id = 20000,
 			phone = {
 				{ number = "01234567890" , type = 3 },
 			}
 		}
+	},
+	others = {
+		{
+			name = "Carol",
+			id = 30000,
+			phone = {
+				{ number = "9876543210" },
+			}
+		},
 	}
 }
 

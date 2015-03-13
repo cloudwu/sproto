@@ -287,6 +287,8 @@ local function packtype(name, t, alltypes)
 			if not tmp.key then
 				error("Invalid map index :" .. f.key)
 			end
+		else
+			tmp.key = nil
 		end
 
 		table.insert(fields, packfield(tmp))

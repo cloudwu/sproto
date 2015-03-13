@@ -9,7 +9,6 @@
 #define MAX_GLOBALSPROTO 16
 #define ENCODE_BUFFERSIZE 2050
 
-//#define ENCODE_BUFFERSIZE 2050
 #define ENCODE_MAXSIZE 0x1000000
 #define ENCODE_DEEPLEVEL 64
 
@@ -94,6 +93,7 @@ struct encode_ud {
 	const char * array_tag;
 	int array_index;
 	int deep;
+	int iter_index;
 };
 
 static int
@@ -119,7 +119,22 @@ encode(const struct sproto_arg *args) {
 				self->array_index = lua_gettop(L);
 			}
 		}
-		lua_rawgeti(L, self->array_index, args->index);
+		if (args->mainindex >= 0) {
+			// use lua_next to iterate the table
+			// todo: check the key is equal to mainindex value
+
+			lua_pushvalue(L,self->iter_index);
+			if (!lua_next(L, self->array_index)) {
+				// iterate end
+				lua_pushnil(L);
+				lua_replace(L, self->iter_index);
+				return 0;
+			}
+			lua_insert(L, -2);
+			lua_replace(L, self->iter_index);
+		} else {
+			lua_rawgeti(L, self->array_index, args->index);
+		}
 	} else {
 		lua_getfield(L, self->tbl_index, args->tagname);
 	}
@@ -167,8 +182,10 @@ encode(const struct sproto_arg *args) {
 		sub.array_tag = NULL;
 		sub.array_index = 0;
 		sub.deep = self->deep + 1;
+		lua_pushnil(L);	// prepare an iterator slot
+		sub.iter_index = sub.tbl_index + 1;
 		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);
-		lua_pop(L,1);
+		lua_pop(L,2);	// pop the value and the iterator slot
 		return r;
 	}
 	default:
@@ -211,18 +228,23 @@ lencode(lua_State *L) {
 		return luaL_argerror(L, 1, "Need a sproto_type object");
 	}
 	luaL_checktype(L, 2, LUA_TTABLE);
-	luaL_checkstack(L, ENCODE_DEEPLEVEL + 8, NULL);
+	luaL_checkstack(L, ENCODE_DEEPLEVEL*2 + 8, NULL);
 	self.L = L;
 	self.st = st;
 	self.tbl_index = 2;
 	self.array_tag = NULL;
 	self.array_index = 0;
 	self.deep = 0;
+	lua_pushnil(L);	// for iterator (stack 3)
+	self.iter_index = 3;
 	for (;;) {
 		int r = sproto_encode(st, buffer, sz, encode, &self);
 		if (r<0) {
 			buffer = expand_buffer(L, sz, sz*2);
 			sz *= 2;
+			// reset iterator slot
+			lua_pushnil(L);
+			lua_replace(L, 3);
 		} else {
 			lua_pushlstring(L, buffer, r);
 			return 1;
@@ -236,6 +258,8 @@ struct decode_ud {
 	int array_index;
 	int result_index;
 	int deep;
+	int mainindex_tag;
+	int key_index;
 };
 
 static int
@@ -283,12 +307,33 @@ decode(const struct sproto_arg *args) {
 		sub.deep = self->deep + 1;
 		sub.array_index = 0;
 		sub.array_tag = NULL;
+		if (args->mainindex >= 0) {
+			// This struct will set into a map, so mark the main index tag.
+			sub.mainindex_tag = args->mainindex;
+			lua_pushnil(L);
+			sub.key_index = lua_gettop(L);
 
-		r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
-		if (r < 0 || r != args->length)
-			return r;
-		lua_settop(L, sub.result_index);
-		break;
+			r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
+			if (r < 0 || r != args->length)
+				return r;
+			// assert(args->index > 0);
+			lua_pushvalue(L, sub.key_index);
+			if (lua_isnil(L, -1)) {
+				luaL_error(L, "Can't find main index (tag=%d) in [%s]", args->mainindex, args->tagname);
+			}
+			lua_pushvalue(L, sub.result_index);
+			lua_rawset(L, self->array_index);
+			lua_settop(L, sub.result_index-1);
+			return 0;
+		} else {
+			sub.mainindex_tag = -1;
+			sub.key_index = 0;
+			r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
+			if (r < 0 || r != args->length)
+				return r;
+			lua_settop(L, sub.result_index);
+			break;
+		}
 	}
 	default:
 		luaL_error(L, "Invalid type");
@@ -296,6 +341,12 @@ decode(const struct sproto_arg *args) {
 	if (args->index > 0) {
 		lua_rawseti(L, self->array_index, args->index);
 	} else {
+		if (self->mainindex_tag == args->tagid) {
+			// This tag is marked, save the value to key_index
+			// assert(self->key_index > 0);
+			lua_pushvalue(L,-1);
+			lua_replace(L, self->key_index);
+		}
 		lua_setfield(L, self->result_index, args->tagname);
 	}
 
@@ -345,6 +396,8 @@ ldecode(lua_State *L) {
 	self.array_index = 0;
 	self.array_tag = NULL;
 	self.deep = 0;
+	self.mainindex_tag = -1;
+	self.key_index = 0;
 	r = sproto_decode(st, buffer, (int)sz, decode, &self);
 	if (r < 0) {
 		return luaL_error(L, "decode error");

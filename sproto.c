@@ -859,6 +859,7 @@ sproto_encode(struct sproto_type *st, void * buffer, int size, sproto_callback c
 		args.tagname = f->name;
 		args.tagid = f->tag;
 		args.subtype = f->st;
+		args.mainindex = f->key;
 		if (type & SPROTO_TARRAY) {
 			args.type = type & ~SPROTO_TARRAY;
 			sz = encode_array(cb, &args, data, size);
@@ -1083,6 +1084,7 @@ sproto_decode(struct sproto_type *st, const void * data, int size, sproto_callba
 		args.type = f->type & ~SPROTO_TARRAY;
 		args.subtype = f->st;
 		args.index = 0;
+		args.mainindex = f->key;
 		if (value < 0) {
 			if (f->type & SPROTO_TARRAY) {
 				if (decode_array(cb, &args, currentdata)) {
