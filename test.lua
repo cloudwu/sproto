@@ -1,5 +1,6 @@
 local parser = require "sprotoparser"
 local core = require "sproto.core"
+local print_r = require "print_r"
 
 local sp = parser.parse [[
 .Person {
@@ -46,27 +47,6 @@ local ab = {
 
 collectgarbage "stop"
 
-local encode_time , decode_time = ...
-
-encode_time = assert(tonumber(encode_time))
-decode_time = assert(tonumber(decode_time))
-
-local code
-
-for i=1,encode_time do
---	code = core.pack(core.encode(st, ab))
-	code = core.encode(st, ab)
-end
-
-print("======================")
-
-for i=1,decode_time do
---	local addr = core.decode(st, core.unpack(code))
-	local addr = core.decode(st, code)
---	for k,p in ipairs(addr.person) do
---		for k,v in ipairs(p.phone) do
---			for _,_ in pairs(v) do
---			end
---		end
---	end
-end
+local code = core.encode(st, ab)
+local addr = core.decode(st, code)
+print_r(addr)

@@ -27,12 +27,21 @@ struct sproto_type * sproto_type(struct sproto *, const char * type_name);
 int sproto_pack(const void * src, int srcsz, void * buffer, int bufsz);
 int sproto_unpack(const void * src, int srcsz, void * buffer, int bufsz);
 
-// `index` is the array index (base 1), or 0 where not an array. -1 means current field is the main key.
-// If `subtype` is not NULL and index > 1, `type` is the main key's tag or -1 .
-typedef int (*sproto_callback)(void *ud, const char *tagname, int type, int index, struct sproto_type *subtype, void *value, int length);
+struct sproto_arg {
+	void *ud;
+	const char *tagname;
+	int tagid;
+	int type;
+	struct sproto_type *subtype;
+	void *value;
+	int length;
+	int index;	// array base 1
+};
+
+typedef int (*sproto_callback)(const struct sproto_arg *args);
 
 // default keytag is -1.
-int sproto_decode(struct sproto_type *, const void * data, int size, sproto_callback cb, void *ud, int keytag);
+int sproto_decode(struct sproto_type *, const void * data, int size, sproto_callback cb, void *ud);
 int sproto_encode(struct sproto_type *, void * buffer, int size, sproto_callback cb, void *ud);
 
 // for debug use
