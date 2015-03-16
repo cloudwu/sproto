@@ -180,6 +180,19 @@ local function checktype(types, ptype, t)
 	end
 end
 
+local function check_protocoltag(r)
+	local map = {}
+	for name, v in pairs(r.protocol) do
+		local tag = v.tag
+		local p = map[tag]
+		if p then
+			error(string.format("redefined protocol tag %d at  `%s`.", tag, name))
+		end
+		map[tag] = v
+	end
+	return r
+end
+
 local function flattypename(r)
 	for typename, t in pairs(r.type) do
 		for _, f in pairs(t) do
@@ -198,7 +211,7 @@ end
 local function parser(text,filename)
 	local state = { file = filename, pos = 0, line = 1 }
 	local r = lpeg.match(proto * -1 + exception , text , 1, state )
-	return flattypename(adjust(r))
+	return flattypename(check_protocoltag(adjust(r)))
 end
 
 --[[
