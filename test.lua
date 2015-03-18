@@ -1,5 +1,6 @@
 local parser = require "sprotoparser"
 local core = require "sproto.core"
+local print_r = require "print_r"
 
 local sp = parser.parse [[
 .Person {
@@ -16,17 +17,18 @@ local sp = parser.parse [[
 }
 
 .AddressBook {
-	person 0 : *Person
+	person 0 : *Person(id)
+	others 1 : *Person
 }
 ]]
 
 sp = core.newproto(sp)
---core.dumpproto(sp)
+core.dumpproto(sp)
 local st = core.querytype(sp, "AddressBook")
 
 local ab = {
 	person = {
-		{
+		[10000] = {
 			name = "Alice",
 			id = 10000,
 			phone = {
@@ -34,37 +36,27 @@ local ab = {
 				{ number = "87654321" , type = 2 },
 			}
 		},
-		{
+		[20000] = {
 			name = "Bob",
 			id = 20000,
 			phone = {
 				{ number = "01234567890" , type = 3 },
 			}
 		}
+	},
+	others = {
+		{
+			name = "Carol",
+			id = 30000,
+			phone = {
+				{ number = "9876543210" },
+			}
+		},
 	}
 }
 
 collectgarbage "stop"
 
-local encode_time , decode_time = ...
-
-encode_time = assert(tonumber(encode_time))
-decode_time = assert(tonumber(decode_time))
-
-local code
-
-for i=1,encode_time do
---	code = core.pack(core.encode(st, ab))
-	code = core.encode(st, ab)
-end
-
-for i=1,decode_time do
---	local addr = core.decode(st, core.unpack(code))
-	local addr = core.decode(st, code)
---	for k,p in ipairs(addr.person) do
---		for k,v in ipairs(p.phone) do
---			for _,_ in pairs(v) do
---			end
---		end
---	end
-end
+local code = core.encode(st, ab)
+local addr = core.decode(st, code)
+print_r(addr)
