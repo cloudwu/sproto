@@ -7,19 +7,19 @@ local strbyte = string.byte
 
 local sp = parser.parse [[
 .person {
-	name 0 : string
+	name 0 : string 
 }
 ]]
 
 sp = core.newproto(sp)
 
 local ab = {
-	name = 1000,
+	name = {a= 1},
 }
 
 local st = core.querytype(sp, "person")
 
-local binary = core.encode(st, ab)
+local binary = core.encode(st, ab) -- error
 local target = core.decode(st, binary)
 
 print( type(ab.name) )    --> number
