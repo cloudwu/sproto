@@ -14,12 +14,12 @@ local sp = parser.parse [[
 sp = core.newproto(sp)
 
 local ab = {
-	name = {a= 1},
+	name = 1000,
 }
 
 local st = core.querytype(sp, "person")
 
-local binary = core.encode(st, ab) -- error
+local binary = core.encode(st, ab) 
 local target = core.decode(st, binary)
 
 print( type(ab.name) )    --> number
@@ -31,3 +31,4 @@ print( string.gsub(binary, ".", function(x)
 )
 --> 0x01 0x00 0x00 0x00 0x04 0x00 0x00 0x00 0x31 0x30 0x30 0x30     12
 
+core.deleteproto(sp)
