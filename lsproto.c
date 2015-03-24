@@ -181,7 +181,7 @@ encode(const struct sproto_arg *args) {
 	case SPROTO_TSTRING: {
 		size_t sz = 0;
 		const char * str;
-		if (!lua_isstring(L, -1)) {
+		if ( lua_type(L, -1) != LUA_TSTRING ) {
 			return luaL_error(L, ".%s[%d] is not a string (Is a %s)", 
 				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 		} else {

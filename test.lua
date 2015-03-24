@@ -60,3 +60,5 @@ collectgarbage "stop"
 local code = core.encode(st, ab)
 local addr = core.decode(st, code)
 print_r(addr)
+
+core.deleteproto(sp)
