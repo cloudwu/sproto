@@ -11,7 +11,7 @@ local sp = sproto.parse [[
 	a 0 : string
 	b 1 : integer
 	c 2 : boolean
-	d 3 : nest
+	d 3 : *nest(a)
 
 	e 4 : *string
 	f 5 : *integer
@@ -25,11 +25,22 @@ local obj = {
 	b = 1000000,
 	c = true,
 	d = {
-		a = "world",
-		-- skip b
-		c = -1,
+		{
+			a = "one",
+			-- skip b
+			c = -1,
+		},
+		{
+			a = "two",
+			b = true,
+		},
+		{
+			a = "",
+			b = false,
+			c = 1,
+		},
 	},
-	e = { "ABC", "def" },
+	e = { "ABC", "", "def" },
 	f = { -3, -2, -1, 0 , 1, 2},
 	g = { true, false, true },
 	h = {
