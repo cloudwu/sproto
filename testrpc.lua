@@ -36,6 +36,8 @@ local client_proto = sproto.parse [[
 }
 ]]
 
+print("=== test 1")
+
 -- The type package must has two field : type and session
 local server = server_proto:host "package"
 local client = client_proto:host "package"
@@ -74,4 +76,10 @@ assert(type == "REQUEST" and name == "bar" and request == nil and response == ni
 local req = client_request "blackhole"
 print("request blackhole size = ", #req)
 
-
+print("=== test 2")
+local v, tag = server_proto:request_encode("foobar", { what = "hello"})
+print("tag =", tag)
+print_r(server_proto:request_decode("foobar", v))
+local v, tag = server_proto:response_encode("foobar", { ok = true })
+print("tag =", tag)
+print_r(server_proto:response_decode("foobar", v))
