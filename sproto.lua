@@ -122,6 +122,10 @@ end
 sproto.pack = core.pack
 sproto.unpack = core.unpack
 
+function sproto:default(typename)
+	return core.default(core.querytype(self.__cobj, typename))
+end
+
 local header_tmp = {}
 
 local function gen_response(self, response, session)

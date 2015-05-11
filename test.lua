@@ -1,8 +1,8 @@
-local parser = require "sprotoparser"
+local sproto = require "sproto"
 local core = require "sproto.core"
 local print_r = require "print_r"
 
-local sp = parser.parse [[
+local sp = sproto.parse [[
 .Person {
 	name 0 : string
 	id 1 : integer
@@ -22,9 +22,13 @@ local sp = parser.parse [[
 }
 ]]
 
-sp = core.newproto(sp)
-core.dumpproto(sp)
-local st = core.querytype(sp, "AddressBook")
+-- core.dumpproto only for debug use
+core.dumpproto(sp.__cobj)
+
+local def = sp:default "Person"
+print("default table for Person")
+print_r(def)
+print("--------------")
 
 local ab = {
 	person = {
@@ -57,6 +61,6 @@ local ab = {
 
 collectgarbage "stop"
 
-local code = core.encode(st, ab)
-local addr = core.decode(st, code)
+local code = sp:encode("AddressBook", ab)
+local addr = sp:decode("AddressBook", code)
 print_r(addr)
