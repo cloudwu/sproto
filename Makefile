@@ -11,7 +11,7 @@ macosx:
 	make sproto.so "DLLFLAGS = -bundle -undefined dynamic_lookup"
 
 sproto.so : sproto.c lsproto.c
-	env gcc -g -Wall $(DLLFLAGS) -o $@ $^
+	env gcc -O2 -Wall $(DLLFLAGS) -o $@ $^
 
 sproto.dll : sproto.c lsproto.c
 	gcc -O2 -Wall --shared -o $@ $^ -I/usr/local/include -L/usr/local/bin -llua53
