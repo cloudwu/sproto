@@ -36,6 +36,9 @@ local client_proto = sproto.parse [[
 }
 ]]
 
+print_r(server_proto:default("package"))
+print_r(server_proto:default("foobar", "REQUEST"))
+
 print("=== test 1")
 
 -- The type package must has two field : type and session
