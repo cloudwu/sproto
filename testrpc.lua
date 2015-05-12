@@ -25,7 +25,6 @@ foo 2 {
 bar 3 {}
 
 blackhole 4 {
-	request {}
 }
 ]]
 
@@ -36,8 +35,15 @@ local client_proto = sproto.parse [[
 }
 ]]
 
+print("=== default table")
+
 print_r(server_proto:default("package"))
 print_r(server_proto:default("foobar", "REQUEST"))
+assert(server_proto:default("foo", "REQUEST")==nil)
+assert(server_proto:request_encode("foo")=="")
+server_proto:response_encode("foo", { ok = true })
+assert(server_proto:request_decode("blackhole")==nil)
+assert(server_proto:response_decode("blackhole")==nil)
 
 print("=== test 1")
 
