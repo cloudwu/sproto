@@ -152,13 +152,39 @@ encode(const struct sproto_arg *args) {
 	case SPROTO_TINTEGER: {
 		lua_Integer v;
 		lua_Integer vh;
+
+		#if LUA_VERSION_NUM < 503
+		//check if use 8 bytes string
+		size_t len = 0;
+		const char * number;
+		#endif
+
 		if (!lua_isinteger(L, -1)) {
-			return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
-				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+			#if LUA_VERSION_NUM < 503
+				number = lua_tolstring(L,-1,&len);
+				if (len !=8 ) {
+					return luaL_error(L, ".%s[%d] is not an integer (Is a %s) Need an 8 length string for int64", 
+						args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+				}
+			#else			
+				return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
+					args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+			#endif
 		} else {
 			v = lua_tointeger(L, -1);
 		}
 		lua_pop(L,1);
+
+		#if LUA_VERSION_NUM < 503
+		if(len == 8)
+		{
+			const uint32_t * vn = (const uint32_t *) number;
+			uint64_t v64 = (uint64_t)vn[0] | (uint64_t)vn[1] << 32;
+			*(uint64_t *)args->value = (uint64_t)v64;
+			return 8;
+		}
+		#endif
+
 		// notice: in lua 5.2, lua_Integer maybe 52bit
 		vh = v >> 31;
 		if (vh == 0 || vh == -1) {
@@ -312,8 +338,22 @@ decode(const struct sproto_arg *args) {
 	}
 	switch (args->type) {
 	case SPROTO_TINTEGER: {
-		// notice: in lua 5.2, 52bit integer support (not 64)
-		lua_Integer v = *(uint64_t*)args->value;
+		uint64_t v64 = *(uint64_t*)args->value;
+		lua_Integer v = v64;
+		//notice: in lua 5.2, 52bit integer support (not 64)
+		
+		#if LUA_VERSION_NUM < 503
+		lua_Integer vh = v >> 31;
+		if (vh == 0 || vh == -1) {
+			//not int64 so do nothing.
+		}
+		else {
+			//use an 8 length string instead of int64
+			lua_pushlstring(L, (const char *)&(v64), 8);
+			break;
+		}
+		#endif
+
 		lua_pushinteger(L, v);
 		break;
 	}
@@ -650,7 +690,18 @@ luaopen_sproto_core(lua_State *L) {
 		{ "default", ldefault },
 		{ NULL, NULL },
 	};
-	luaL_newlib(L,l);
+	
+    #if LUA_VERSION_NUM >= 503
+    
+    luaL_newlib(L,l);
+    
+    #else
+    
+    //fix by chiuan register for lua5.1.4 and luajit.:
+	luaL_register(L, "sproto.core", l);
+    
+    #endif
+    
 	pushfunction_withbuffer(L, "encode", lencode);
 	pushfunction_withbuffer(L, "pack", lpack);
 	pushfunction_withbuffer(L, "unpack", lunpack);
