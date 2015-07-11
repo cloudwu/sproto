@@ -43,6 +43,7 @@ LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 
 // lua_isinteger is lua 5.3 api
 #define lua_isinteger lua_isnumber
+
 // work around , use push & lua_gettable may be better
 #define lua_geti lua_rawgeti
 #define lua_seti lua_rawseti
