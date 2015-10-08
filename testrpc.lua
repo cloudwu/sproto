@@ -35,6 +35,10 @@ local client_proto = sproto.parse [[
 }
 ]]
 
+
+assert(server_proto:exist_type "package")
+assert(server_proto:exist_proto "foobar")
+
 print("=== default table")
 
 print_r(server_proto:default("package"))
