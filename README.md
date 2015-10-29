@@ -270,7 +270,7 @@ person {
 
 The algorithm is very similar to [Cap'n proto](http://kentonv.github.io/capnproto/), but 0x00 is not treated specially. 
 
-In packed format, the message if padding to 8. Each 8 byte is reduced to a tag byte followed by zero to eight content bytes. 
+In packed format, the message is padding to 8. Each 8 byte is reduced to a tag byte followed by zero to eight content bytes. 
 The bits of the tag byte correspond to the bytes of the unpacked word, with the least-significant bit corresponding to the first byte. 
 Each zero bit indicates that the corresponding byte is zero. The non-zero bytes are packed following the tag.
 
