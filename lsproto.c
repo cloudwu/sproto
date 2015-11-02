@@ -41,8 +41,8 @@ LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 
 #if LUA_VERSION_NUM < 503
 
-// lua_isinteger is lua 5.3 api
-#define lua_isinteger lua_isnumber
+// lua_tointegerx is lua 5.3 api
+#define lua_tointegerx lua_tonumberx
 
 // work around , use push & lua_gettable may be better
 #define lua_geti lua_rawgeti
@@ -156,11 +156,11 @@ encode(const struct sproto_arg *args) {
 	case SPROTO_TINTEGER: {
 		lua_Integer v;
 		lua_Integer vh;
-		if (!lua_isinteger(L, -1)) {
+		int isnum;
+		v = lua_tointegerx(L, -1, &isnum);
+		if(!isnum) {
 			return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
 				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
-		} else {
-			v = lua_tointeger(L, -1);
 		}
 		lua_pop(L,1);
 		// notice: in lua 5.2, lua_Integer maybe 52bit
