@@ -309,7 +309,7 @@ decode(const struct sproto_arg *args) {
 	lua_State *L = self->L;
 	if (self->deep >= ENCODE_DEEPLEVEL)
 		return luaL_error(L, "The table is too deep");
-	if (args->index > 0) {
+	if (args->index != 0) {
 		// It's array
 		if (args->tagname != self->array_tag) {
 			self->array_tag = args->tagname;
@@ -320,6 +320,10 @@ decode(const struct sproto_arg *args) {
 				lua_replace(L, self->array_index);
 			} else {
 				self->array_index = lua_gettop(L);
+			}
+			if (args->index < 0) {
+				// It's a empty array, return now.
+				return 0;
 			}
 		}
 	}
@@ -357,7 +361,6 @@ decode(const struct sproto_arg *args) {
 			r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
 			if (r < 0 || r != args->length)
 				return r;
-			// assert(args->index > 0);
 			lua_pushvalue(L, sub.key_index);
 			if (lua_isnil(L, -1)) {
 				luaL_error(L, "Can't find main index (tag=%d) in [%s]", args->mainindex, args->tagname);
