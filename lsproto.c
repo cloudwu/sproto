@@ -126,7 +126,7 @@ encode(const struct sproto_arg *args) {
 					lua_replace(L, self->array_index);
 				}
 				self->array_index = 0;
-				return 0;
+				return SPROTO_CB_NOARRAY;
 			}
 			if (!lua_istable(L, -1)) {
 				return luaL_error(L, ".*%s(%d) should be a table (Is a %s)",
@@ -147,7 +147,7 @@ encode(const struct sproto_arg *args) {
 				// iterate end
 				lua_pushnil(L);
 				lua_replace(L, self->iter_index);
-				return 0;
+				return SPROTO_CB_NIL;
 			}
 			lua_insert(L, -2);
 			lua_replace(L, self->iter_index);
@@ -159,7 +159,7 @@ encode(const struct sproto_arg *args) {
 	}
 	if (lua_isnil(L, -1)) {
 		lua_pop(L,1);
-		return 0;
+		return SPROTO_CB_NIL;
 	}
 	switch (args->type) {
 	case SPROTO_TINTEGER: {
@@ -203,10 +203,10 @@ encode(const struct sproto_arg *args) {
 			str = lua_tolstring(L, -1, &sz);
 		}
 		if (sz > args->length)
-			return -1;
+			return SPROTO_CB_ERROR;
 		memcpy(args->value, str, sz);
 		lua_pop(L,1);
-		return sz + 1;	// The length of empty string is 1.
+		return sz;
 	}
 	case SPROTO_TSTRUCT: {
 		struct encode_ud sub;
@@ -226,6 +226,8 @@ encode(const struct sproto_arg *args) {
 		sub.iter_index = sub.tbl_index + 1;
 		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);
 		lua_settop(L, top-1);	// pop the value
+		if (r < 0) 
+			return SPROTO_CB_ERROR;
 		return r;
 	}
 	default:
@@ -359,7 +361,9 @@ decode(const struct sproto_arg *args) {
 			sub.key_index = lua_gettop(L);
 
 			r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
-			if (r < 0 || r != args->length)
+			if (r < 0)
+				return SPROTO_CB_ERROR;
+			if (r != args->length)
 				return r;
 			lua_pushvalue(L, sub.key_index);
 			if (lua_isnil(L, -1)) {
@@ -373,7 +377,9 @@ decode(const struct sproto_arg *args) {
 			sub.mainindex_tag = -1;
 			sub.key_index = 0;
 			r = sproto_decode(args->subtype, args->value, args->length, decode, &sub);
-			if (r < 0 || r != args->length)
+			if (r < 0)
+				return SPROTO_CB_ERROR;
+			if (r != args->length)
 				return r;
 			lua_settop(L, sub.result_index);
 			break;
