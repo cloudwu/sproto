@@ -1003,19 +1003,18 @@ decode_array(sproto_callback cb, struct sproto_arg *args, uint8_t * stream) {
 	uint32_t sz = todword(stream);
 	int type = args->type;
 	int i;
+	if (sz == 0) {
+		// It's empty array, call cb with index == -1 to create the empty array.
+		args->index = -1;
+		args->value = NULL;
+		args->length = 0;
+		cb(args);
+		return 0;
+	}	
 	stream += SIZEOF_LENGTH;
 	switch (type) {
 	case SPROTO_TINTEGER: {
-		int len;
-		if (sz < 1) {
-			// It's empty integer array, call cb with index == -1 to create the empty array.
-			args->index = -1;
-			args->value = NULL;
-			args->length = 0;
-			cb(args);
-			return 0;
-		}
-		len = *stream;
+		int len = *stream;
 		++stream;
 		--sz;
 		if (len == sizeof(uint32_t)) {
