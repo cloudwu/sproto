@@ -7,6 +7,7 @@ local sp = sproto.parse [[
 		a 1 : string
 		b 3 : boolean
 		c 5 : integer
+		d 6 : integer(3)
 	}
 	a 0 : string
 	b 1 : integer
@@ -17,6 +18,7 @@ local sp = sproto.parse [[
 	f 5 : *integer
 	g 6 : *boolean
 	h 7 : *foobar
+	i 8 : *integer(2)
 }
 ]]
 
@@ -39,6 +41,10 @@ local obj = {
 			b = false,
 			c = 1,
 		},
+		{
+			a = "decimal",
+			d = 1.235,
+		}
 	},
 	e = { "ABC", "", "def" },
 	f = { -3, -2, -1, 0 , 1, 2},
@@ -49,6 +55,7 @@ local obj = {
 		{ b = -100, c= false },
 		{ b = 0, e = { "test" } },
 	},
+	i = { 1,2.1,3.21,4.321 },
 }
 
 local code = sp:encode("foobar", obj)

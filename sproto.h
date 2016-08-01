@@ -41,6 +41,7 @@ struct sproto_arg {
 	int length;
 	int index;	// array base 1
 	int mainindex;	// for map
+	int decimal; // for decimal
 };
 
 typedef int (*sproto_callback)(const struct sproto_arg *args);

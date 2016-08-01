@@ -18,6 +18,7 @@ struct field {
 	const char * name;
 	struct sproto_type * st;
 	int key;
+	int decimal;
 };
 
 struct sproto_type {
@@ -177,6 +178,17 @@ import_string(struct sproto *s, const uint8_t * stream) {
 	return buffer;
 }
 
+static int
+calc_pow(int base, int n) {
+	if (n == 0)
+		return 1;
+	int r = calc_pow(base * base , n / 2);
+	if (n&1) {
+		r *= base;
+	}
+	return r;
+}
+
 static const uint8_t *
 import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	uint32_t sz;
@@ -190,6 +202,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	f->name = NULL;
 	f->st = NULL;
 	f->key = -1;
+	f->decimal = 0;
 
 	sz = todword(stream);
 	stream += SIZEOF_LENGTH;
@@ -222,12 +235,16 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 			f->type = value;
 			break;
 		case 2: // type index
-			if (value >= s->type_n)
-				return NULL;	// invalid type index
-			if (f->type >= 0)
-				return NULL;
-			f->type = SPROTO_TSTRUCT;
-			f->st = &s->type[value];
+			if (f->type == SPROTO_TINTEGER) {
+				f->decimal = calc_pow(10, value);
+			} else {
+				if (value >= s->type_n)
+					return NULL;	// invalid type index
+				if (f->type >= 0)
+					return NULL;
+				f->type = SPROTO_TSTRUCT;
+				f->st = &s->type[value];
+			}
 			break;
 		case 3: // tag
 			f->tag = value;
@@ -884,6 +901,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 		args.tagid = f->tag;
 		args.subtype = f->st;
 		args.mainindex = f->key;
+		args.decimal = f->decimal;
 		if (type & SPROTO_TARRAY) {
 			args.type = type & ~SPROTO_TARRAY;
 			sz = encode_array(cb, &args, data, size);
@@ -1116,6 +1134,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 		args.subtype = f->st;
 		args.index = 0;
 		args.mainindex = f->key;
+		args.decimal = f->decimal;
 		if (value < 0) {
 			if (f->type & SPROTO_TARRAY) {
 				if (decode_array(cb, &args, currentdata)) {
