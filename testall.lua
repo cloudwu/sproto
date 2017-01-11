@@ -61,3 +61,4 @@ local obj = {
 local code = sp:encode("foobar", obj)
 obj = sp:decode("foobar", code)
 print_r(obj)
+

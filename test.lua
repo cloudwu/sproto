@@ -64,3 +64,5 @@ collectgarbage "stop"
 local code = sp:encode("AddressBook", ab)
 local addr = sp:decode("AddressBook", code)
 print_r(addr)
+
+core.deleteproto(sp)
