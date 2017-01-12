@@ -673,8 +673,11 @@ ldefault(lua_State *L) {
 	return 1;
 }
 
-
-int LUAMOD_API
+#ifdef _MSC_VER
+int __declspec(dllexport)
+#else
+int
+#endif
 luaopen_sproto_core(lua_State *L) {
 #ifdef luaL_checkversion
 	luaL_checkversion(L);
