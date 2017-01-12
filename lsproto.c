@@ -673,6 +673,7 @@ ldefault(lua_State *L) {
 	return 1;
 }
 
+
 int LUAMOD_API
 luaopen_sproto_core(lua_State *L) {
 #ifdef luaL_checkversion
