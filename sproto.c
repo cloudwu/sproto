@@ -180,10 +180,9 @@ import_string(struct sproto *s, const uint8_t * stream) {
 
 static int
 calc_pow(int base, int n) {
-	int r = 0;
 	if (n == 0)
 		return 1;
-	r = calc_pow(base * base , n / 2);
+	int r = calc_pow(base * base , n / 2);
 	if (n&1) {
 		r *= base;
 	}
