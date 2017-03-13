@@ -18,7 +18,7 @@ struct field {
 	const char * name;
 	struct sproto_type * st;
 	int key;
-	int decimal;
+	int extra;
 };
 
 struct sproto_type {
@@ -203,7 +203,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	f->name = NULL;
 	f->st = NULL;
 	f->key = -1;
-	f->decimal = 0;
+	f->extra = 0;
 
 	sz = todword(stream);
 	stream += SIZEOF_LENGTH;
@@ -237,7 +237,9 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 			break;
 		case 2: // type index
 			if (f->type == SPROTO_TINTEGER) {
-				f->decimal = calc_pow(10, value);
+				f->extra = calc_pow(10, value);
+			} else if (f->type == SPROTO_TSTRING) {
+				f->extra = value;	// string if 0 ; binary is 1
 			} else {
 				if (value >= s->type_n)
 					return NULL;	// invalid type index
@@ -481,11 +483,6 @@ sproto_release(struct sproto * s) {
 void
 sproto_dump(struct sproto *s) {
 	int i,j;
-	static const char * buildin[] = {
-		"integer",
-		"boolean",
-		"string",
-	};
 	printf("=== %d types ===\n", s->type_n);
 	for (i=0;i<s->type_n;i++) {
 		struct sproto_type *t = &s->type[i];
@@ -494,25 +491,45 @@ sproto_dump(struct sproto *s) {
 			char array[2] = { 0, 0 };
 			const char * type_name = NULL;
 			struct field *f = &t->f[j];
+			int type = f->type & ~SPROTO_TARRAY;
 			if (f->type & SPROTO_TARRAY) {
 				array[0] = '*';
 			} else {
 				array[0] = 0;
 			}
-			{
-				int t = f->type & ~SPROTO_TARRAY;
-				if (t == SPROTO_TSTRUCT) {
-					type_name = f->st->name;
-				} else {
-					assert(t<SPROTO_TSTRUCT);
-					type_name = buildin[t];
+			if (type == SPROTO_TSTRUCT) {
+				type_name = f->st->name;
+			} else {
+				switch(type) {
+				case SPROTO_TINTEGER:
+					if (f->extra) {
+						type_name = "decimal";
+					} else {
+						type_name = "integer";
+					}
+					break;
+				case SPROTO_TBOOLEAN:
+					type_name = "boolean";
+					break;
+				case SPROTO_TSTRING:
+					if (f->extra == SPROTO_TSTRING_BINARY)
+						type_name = "binary";
+					else
+						type_name = "string";
+					break;
+				default:
+					type_name = "invalid";
+					break;
 				}
 			}
-			if (f->key >= 0) {
-				printf("\t%s (%d) %s%s(%d)\n", f->name, f->tag, array, type_name, f->key);
-			} else {
-				printf("\t%s (%d) %s%s\n", f->name, f->tag, array, type_name);
+			printf("\t%s (%d) %s%s", f->name, f->tag, array, type_name);
+			if (type == SPROTO_TINTEGER && f->extra > 0) {
+				printf("(%d)", f->extra);
 			}
+			if (f->key >= 0) {
+				printf("[%d]", f->key);
+			}
+			printf("\n");
 		}
 	}
 	printf("=== %d protocol ===\n", s->protocol_n);
@@ -902,7 +919,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 		args.tagid = f->tag;
 		args.subtype = f->st;
 		args.mainindex = f->key;
-		args.decimal = f->decimal;
+		args.extra = f->extra;
 		if (type & SPROTO_TARRAY) {
 			args.type = type & ~SPROTO_TARRAY;
 			sz = encode_array(cb, &args, data, size);
@@ -1135,7 +1152,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 		args.subtype = f->st;
 		args.index = 0;
 		args.mainindex = f->key;
-		args.decimal = f->decimal;
+		args.extra = f->extra;
 		if (value < 0) {
 			if (f->type & SPROTO_TARRAY) {
 				if (decode_array(cb, &args, currentdata)) {

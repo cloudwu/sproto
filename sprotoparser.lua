@@ -172,6 +172,7 @@ local buildin_types = {
 	integer = 0,
 	boolean = 1,
 	string = 2,
+	binary = 2,	-- binary is a sub type of string
 }
 
 local function checktype(types, ptype, t)
@@ -280,8 +281,8 @@ local function packfield(f)
 	table.insert(strtbl, "\0\0")	-- name	(tag = 0, ref an object)
 	if f.buildin then
 		table.insert(strtbl, packvalue(f.buildin))	-- buildin (tag = 1)
-		if f.decimal then
-			table.insert(strtbl, packvalue(f.decimal))	-- f.buildin must be decimal(3)
+		if f.extra then
+			table.insert(strtbl, packvalue(f.extra))	-- f.buildin can be integer or string
 		else
 			table.insert(strtbl, "\1\0")	-- skip (tag = 2)
 		end
@@ -308,9 +309,12 @@ local function packtype(name, t, alltypes)
 		tmp.array = f.array
 		tmp.name = f.name
 		tmp.tag = f.tag
-		tmp.decimal = f.decimal
+		tmp.extra = f.decimal
 
 		tmp.buildin = buildin_types[f.typename]
+		if f.typename == "binary" then
+			tmp.extra = 1	-- binary is sub type of string
+		end
 		local subtype
 		if not tmp.buildin then
 			subtype = assert(alltypes[f.typename])

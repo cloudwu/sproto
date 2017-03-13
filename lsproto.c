@@ -166,10 +166,10 @@ encode(const struct sproto_arg *args) {
 		lua_Integer v;
 		lua_Integer vh;
 		int isnum;
-		if (args->decimal) {
+		if (args->extra) {
 			// It's decimal.
 			lua_Number vn = lua_tonumber(L, -1);
-			v = (lua_Integer)(vn * args->decimal + 0.5);
+			v = (lua_Integer)(vn * args->extra + 0.5);
 		} else {
 			v = lua_tointegerx(L, -1, &isnum);
 			if(!isnum) {
@@ -338,10 +338,10 @@ decode(const struct sproto_arg *args) {
 	switch (args->type) {
 	case SPROTO_TINTEGER: {
 		// notice: in lua 5.2, 52bit integer support (not 64)
-		if (args->decimal) {
+		if (args->extra) {
 			lua_Integer v = *(uint64_t*)args->value;
 			lua_Number vn = (lua_Number)v;
-			vn /= args->decimal;
+			vn /= args->extra;
 			lua_pushnumber(L, vn);
 		} else {
 			lua_Integer v = *(uint64_t*)args->value;

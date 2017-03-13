@@ -19,6 +19,7 @@ local sp = sproto.parse [[
 	g 6 : *boolean
 	h 7 : *foobar
 	i 8 : *integer(2)
+	j 9 : binary
 }
 ]]
 
@@ -56,8 +57,13 @@ local obj = {
 		{ b = 0, e = { "test" } },
 	},
 	i = { 1,2.1,3.21,4.321 },
+	j = "\0\1\2\3",
 }
 
 local code = sp:encode("foobar", obj)
 obj = sp:decode("foobar", code)
 print_r(obj)
+
+-- core.dumpproto only for debug use
+local core = require "sproto.core"
+core.dumpproto(sp.__cobj)
