@@ -85,7 +85,7 @@ local typedef = P {
 	FIELD = namedpat("field", (name * blanks * tag * blank0 * ":" * blank0 * (C"*")^-1 * typename * (mainkey +  decimal)^0)),
 	STRUCT = P"{" * multipat(V"FIELD" + V"TYPE") * P"}",
 	TYPE = namedpat("type", P"." * name * blank0 * V"STRUCT" ),
-	SUBPROTO = Ct((C"request" + C"response") * blanks * (typename + V"STRUCT")),
+	SUBPROTO = Ct((C"request" + C"response") * (blanks * (typename + V"STRUCT")) ^ -1),
 	PROTOCOL = namedpat("protocol", name * blanks * tag * blank0 * P"{" * multipat(V"SUBPROTO") * P"}"),
 	ALL = multipat(V"TYPE" + V"PROTOCOL"),
 }
