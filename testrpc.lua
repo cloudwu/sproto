@@ -22,7 +22,9 @@ foo 2 {
 	}
 }
 
-bar 3 {}
+bar 3 {
+	response nil
+}
 
 blackhole 4 {
 }
@@ -81,18 +83,19 @@ local type, session, response = client:dispatch(resp)
 assert(type == "RESPONSE" and session == 2)
 print_r(response)
 
-local req = client_request("bar")	-- bar has no response
+local req = client_request("bar", nil, 3)
 print("request bar size =", #req)
 local type, name, request, response = server:dispatch(req)
-assert(type == "REQUEST" and name == "bar" and request == nil and response == nil)
+assert(type == "REQUEST" and name == "bar" and request == nil)
+assert(response ~= nil)
 
-local req = client_request "blackhole"
+local req = client_request "blackhole"	-- no response
 print("request blackhole size = ", #req)
 
 print("=== test 2")
 local v, tag = server_proto:request_encode("foobar", { what = "hello"})
+assert(tag == 1)	-- foobar : 1
 print("tag =", tag)
 print_r(server_proto:request_decode("foobar", v))
-local v, tag = server_proto:response_encode("foobar", { ok = true })
-print("tag =", tag)
+local v = server_proto:response_encode("foobar", { ok = true })
 print_r(server_proto:response_decode("foobar", v))
