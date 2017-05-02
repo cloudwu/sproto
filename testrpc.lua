@@ -87,7 +87,7 @@ local req = client_request("bar", nil, 3)
 print("request bar size =", #req)
 local type, name, request, response = server:dispatch(req)
 assert(type == "REQUEST" and name == "bar" and request == nil)
-assert(response ~= nil)
+assert(select(2,client:dispatch(response())) == 3)
 
 local req = client_request "blackhole"	-- no response
 print("request blackhole size = ", #req)
