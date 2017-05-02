@@ -201,6 +201,7 @@ A schema text can be self-described by the sproto schema language.
     tag 1 : integer
     request 2 : integer # index
     response 3 : integer # index
+    confirm 4 : boolean # response nil where confirm == true
 }
 
 .group {
