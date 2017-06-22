@@ -63,30 +63,36 @@ local line_comment = "#" * (1 - newline) ^0 * (newline + eof)
 local blank = S" \t" + newline + line_comment
 local blank0 = blank ^ 0
 local blanks = blank ^ 1
+local space = S" \t" ^ 0
 local alpha = R"az" + R"AZ" + "_"
 local alnum = alpha + R"09"
 local word = alpha * alnum ^ 0
 local name = C(word)
 local typename = C(word * ("." * word) ^ 0)
 local tag = R"09" ^ 1 / tonumber
-local mainkey = "(" * blank0 * name * blank0 * ")"
-local decimal = "(" * blank0 * C(tag) * blank0 * ")"
+local mainkey = "(" * space * name * space * ")"
+local decimal = "(" * space * C(tag) * space * ")"
+local property = "[" * Ct((space * name) ^ 1) * space * "]"
 
 local function multipat(pat)
 	return Ct(blank0 * (pat * blanks) ^ 0 * pat^0 * blank0)
 end
 
 local function namedpat(name, pat)
-	return Ct(Cg(Cc(name), "type") * Cg(pat))
+	return Ct(Cg(Cc(name), "type") * pat)
 end
 
 local typedef = P {
 	"ALL",
-	FIELD = namedpat("field", (name * blanks * tag * blank0 * ":" * blank0 * (C"*")^-1 * typename * (mainkey +  decimal)^0)),
-	STRUCT = P"{" * multipat(V"FIELD" + V"TYPE") * P"}",
-	TYPE = namedpat("type", P"." * name * blank0 * V"STRUCT" ),
+	FIELD = namedpat("field",
+		Cg(name * blanks * tag * space * ":" * space * (C "*")^-1 * typename)
+		* space * Cg(mainkey +  decimal, "key") ^ 0
+		* space * Cg(property , "property") ^ 0
+		),
+	STRUCT = P "{" * multipat(V"FIELD" + V"TYPE") * P"}",
+	TYPE = namedpat("type", Cg(P"." * name * blank0 * V"STRUCT")),
 	SUBPROTO = Ct((C"request" + C"response") * blanks * (typename + V"STRUCT")),
-	PROTOCOL = namedpat("protocol", name * blanks * tag * blank0 * P"{" * multipat(V"SUBPROTO") * P"}"),
+	PROTOCOL = namedpat("protocol", Cg(name * blanks * tag * blank0 * P "{" * multipat(V "SUBPROTO") * P "}")),
 	ALL = multipat(V"TYPE" + V"PROTOCOL"),
 }
 
@@ -115,6 +121,26 @@ function convert.protocol(all, obj)
 	return result
 end
 
+local buildin_types = {
+	integer = 0,
+	boolean = 1,
+	string = 2,
+	binary = 2,	-- binary is a sub type of string
+}
+
+local function add_property(field, p)
+	for _, v in ipairs(p) do
+		if v == "required" then
+			field.required = 1	-- SPROTO_REQUIRED
+		elseif v == "optional" then
+			assert(field.array or buildin_types[field.typename])	-- only buildin type or array can set default
+			field.required = 2	-- SPROTO_OPTIONAL
+		else
+			error("Invalid Property " .. v)
+		end
+	end
+end
+
 function convert.type(all, obj)
 	local result = {}
 	local typename = obj[1]
@@ -139,7 +165,7 @@ function convert.type(all, obj)
 				field.array = true
 				fieldtype = f[4]
 			end
-			local mainkey = f[5]
+			local mainkey = f.key
 			if mainkey then
 				if fieldtype == "integer" then
 					field.decimal = mainkey
@@ -149,6 +175,9 @@ function convert.type(all, obj)
 				end
 			end
 			field.typename = fieldtype
+			if f.property then
+				add_property(field, f.property)
+			end
 		else
 			assert(f.type == "type")	-- nest type
 			local nesttypename = typename .. "." .. f[1]
@@ -173,13 +202,6 @@ local function adjust(r)
 
 	return result
 end
-
-local buildin_types = {
-	integer = 0,
-	boolean = 1,
-	string = 2,
-	binary = 2,	-- binary is a sub type of string
-}
 
 local function checktype(types, ptype, t)
 	if buildin_types[t] then
@@ -255,6 +277,7 @@ end
 		tag	3 :	integer
 		array 4	: boolean
 		key 5 : integer # If key exists, array must be true, and it's a map.
+		required 6 : integer # 1 means required, 2 means default
 	}
 	name 0 : string
 	fields 1 : *field
@@ -276,15 +299,17 @@ end
 
 local function packfield(f)
 	local strtbl = {}
+	local field_n
 	if f.array then
 		if f.key then
-			table.insert(strtbl, "\6\0")  -- 6 fields
+			field_n = 6
 		else
-			table.insert(strtbl, "\5\0")  -- 5 fields
+			field_n = 5
 		end
 	else
-		table.insert(strtbl, "\4\0")	-- 4 fields
+		field_n = 4
 	end
+	table.insert(strtbl, string.char(field_n) .. "\0")
 	table.insert(strtbl, "\0\0")	-- name	(tag = 0, ref an object)
 	if f.buildin then
 		table.insert(strtbl, packvalue(f.buildin))	-- buildin (tag = 1)
@@ -299,12 +324,26 @@ local function packfield(f)
 		table.insert(strtbl, packvalue(f.type))		-- type (tag = 2)
 		table.insert(strtbl, packvalue(f.tag))		-- tag (tag = 3)
 	end
+	local tag = 3
 	if f.array then
+		tag = 4
 		table.insert(strtbl, packvalue(1))	-- array = true (tag = 4)
 	end
 	if f.key then
+		tag = 5
 		table.insert(strtbl, packvalue(f.key)) -- key tag (tag = 5)
 	end
+	if f.required then
+		local skip = 5 - tag
+		if skip > 0 then
+			table.insert(strtbl, string.char(skip * 2 -1) .. "\0")
+			field_n = field_n + 1
+		end
+		table.insert(strtbl, packvalue(f.required))	-- pack required (tag = 6)
+		field_n = field_n + 1
+		strtbl[1] = string.char(field_n) .. "\0"
+	end
+
 	table.insert(strtbl, packbytes(f.name)) -- external object (name)
 	return packbytes(table.concat(strtbl))
 end
@@ -317,6 +356,7 @@ local function packtype(name, t, alltypes)
 		tmp.name = f.name
 		tmp.tag = f.tag
 		tmp.extra = f.decimal
+		tmp.required = f.required
 
 		tmp.buildin = buildin_types[f.typename]
 		if f.typename == "binary" then

@@ -4,9 +4,9 @@ local print_r = require "print_r"
 
 local sp = sproto.parse [[
 .Person {
-	name 0 : string
+	name 0 : string [ required ]
 	id 1 : integer
-	email 2 : string
+	email 2 : string [ optional ]
 
 	.PhoneNumber {
 		number 0 : string
@@ -54,7 +54,8 @@ local ab = {
 			id = 30000,
 			phone = {
 				{ number = "9876543210" },
-			}
+			},
+			email = "",
 		},
 	}
 }
