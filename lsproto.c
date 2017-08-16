@@ -160,6 +160,9 @@ encode(const struct sproto_arg *args) {
 		lua_getfield(L, self->tbl_index, args->tagname);
 	}
 	if (lua_isnil(L, -1)) {
+		if (args->required == SPROTO_REQUIRED) {
+			return luaL_error(L, "%s is required", args->tagname);
+		}
 		lua_pop(L,1);
 		return SPROTO_CB_NIL;
 	}
@@ -180,6 +183,10 @@ encode(const struct sproto_arg *args) {
 			}
 		}
 		lua_pop(L,1);
+		if (v == 0 && args->required == SPROTO_OPTIONAL) {
+			// need not encode 0
+			return SPROTO_CB_NIL;
+		}
 		// notice: in lua 5.2, lua_Integer maybe 52bit
 		vh = v >> 31;
 		if (vh == 0 || vh == -1) {
@@ -199,6 +206,10 @@ encode(const struct sproto_arg *args) {
 		}
 		*(int *)args->value = v;
 		lua_pop(L,1);
+		if (v == 0 && args->required == SPROTO_OPTIONAL) {
+			// need not encode false
+			return SPROTO_CB_NIL;
+		}
 		return 4;
 	}
 	case SPROTO_TSTRING: {
@@ -214,6 +225,10 @@ encode(const struct sproto_arg *args) {
 			return SPROTO_CB_ERROR;
 		memcpy(args->value, str, sz);
 		lua_pop(L,1);
+		if (sz == 0 && args->required == SPROTO_OPTIONAL) {
+			// need not encode ""
+			return SPROTO_CB_NIL;
+		}
 		return sz;
 	}
 	case SPROTO_TSTRUCT: {
@@ -319,6 +334,39 @@ static int
 decode(const struct sproto_arg *args) {
 	struct decode_ud * self = args->ud;
 	lua_State *L = self->L;
+	if (args->value == NULL) {
+		if (args->required == SPROTO_REQUIRED) {
+			return luaL_error(L, "%s is missing", args->tagname);
+		} else {
+			// assert(args->required == SPROTO_OPTIONAL);
+			if (args->index < 0) {	// it's array
+				lua_newtable(L);	// push empty table
+			} else {
+				switch (args->type) {
+				case SPROTO_TINTEGER:
+					lua_pushinteger(L, 0);
+					break;
+				case SPROTO_TBOOLEAN:
+					lua_pushboolean(L, 0);
+					break;
+				case SPROTO_TSTRING:
+					lua_pushstring(L, "");
+					break;
+				default:
+					// do nothing
+					return 0;
+				}
+				if (self->mainindex_tag == args->tagid) {
+					// This tag is marked, save the value to key_index
+					// assert(self->key_index > 0);
+					lua_pushvalue(L,-1);
+					lua_replace(L, self->key_index);
+				}
+			}
+			lua_setfield(L, self->result_index, args->tagname);
+			return 0;
+		}
+	}
 	if (self->deep >= ENCODE_DEEPLEVEL)
 		return luaL_error(L, "The table is too deep");
 	if (args->index != 0) {

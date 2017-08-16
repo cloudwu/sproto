@@ -19,6 +19,7 @@ struct field {
 	struct sproto_type * st;
 	int key;
 	int extra;
+	int required;
 };
 
 struct sproto_type {
@@ -205,6 +206,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 	f->st = NULL;
 	f->key = -1;
 	f->extra = 0;
+	f->required = 0;
 
 	sz = todword(stream);
 	stream += SIZEOF_LENGTH;
@@ -259,6 +261,9 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 			break;
 		case 5:	// key
 			f->key = value;
+			break;
+		case 6: // required
+			f->required = value;
 			break;
 		default:
 			return NULL;
@@ -933,6 +938,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 		args.subtype = f->st;
 		args.mainindex = f->key;
 		args.extra = f->extra;
+		args.required = f->required;
 		if (type & SPROTO_TARRAY) {
 			args.type = type & ~SPROTO_TARRAY;
 			sz = encode_array(cb, &args, data, size);
@@ -1111,6 +1117,29 @@ decode_array(sproto_callback cb, struct sproto_arg *args, uint8_t * stream) {
 	return 0;
 }
 
+static void
+skip_tag(const struct sproto_type *st, sproto_callback cb, void *ud, struct field *f, struct field *to) {
+	struct sproto_arg args;
+	args.ud = ud;
+	args.value = NULL;
+	args.length = 0;
+
+	while (f < to) {
+		if (f->required != 0) {
+			args.tagname = f->name;
+			args.tagid = f->tag;
+			args.type = f->type & ~SPROTO_TARRAY;
+			args.subtype = f->st;
+			args.index = (f->type & SPROTO_TARRAY) ? -1: 0;	// empty array should be -1
+			args.mainindex = f->key;
+			args.extra = f->extra;
+			args.required = f->required;
+			cb(&args);
+		}
+		++f;
+	}
+}
+
 int
 sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_callback cb, void *ud) {
 	struct sproto_arg args;
@@ -1120,6 +1149,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 	int fn;
 	int i;
 	int tag;
+	struct field * lastf;
 	if (size < SIZEOF_HEADER)
 		return -1;
 	// debug print
@@ -1135,6 +1165,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 	args.ud = ud;
 
 	tag = -1;
+	lastf = st->f;
 	for (i=0;i<fn;i++) {
 		uint8_t * currentdata;
 		struct field * f;
@@ -1159,6 +1190,9 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 		f = findtag(st, tag);
 		if (f == NULL)
 			continue;
+		skip_tag(st, cb, ud, lastf, f);
+		lastf = f+1;
+
 		args.tagname = f->name;
 		args.tagid = f->tag;
 		args.type = f->type & ~SPROTO_TARRAY;
@@ -1166,6 +1200,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 		args.index = 0;
 		args.mainindex = f->key;
 		args.extra = f->extra;
+		args.required = f->required;
 		if (value < 0) {
 			if (f->type & SPROTO_TARRAY) {
 				if (decode_array(cb, &args, currentdata)) {
@@ -1214,6 +1249,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 			cb(&args);
 		}
 	}
+	skip_tag(st, cb, ud, lastf, st->f+st->n);
 	return total - size;
 }
 

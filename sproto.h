@@ -19,6 +19,9 @@ struct sproto_type;
 #define SPROTO_TSTRING_STRING 0
 #define SPROTO_TSTRING_BINARY 1
 
+#define SPROTO_REQUIRED 1
+#define SPROTO_OPTIONAL 2
+
 #define SPROTO_CB_ERROR -1
 #define SPROTO_CB_NIL -2
 #define SPROTO_CB_NOARRAY -3
@@ -48,6 +51,7 @@ struct sproto_arg {
 	int index;	// array base 1
 	int mainindex;	// for map
 	int extra; // SPROTO_TINTEGER: decimal ; SPROTO_TSTRING 0:utf8 string 1:binary
+	int required;
 };
 
 typedef int (*sproto_callback)(const struct sproto_arg *args);

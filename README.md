@@ -154,8 +154,8 @@ The schema text is like this:
 
 .Person {	# . means a user defined type 
     name 0 : string	# string is a build-in type.
-    id 1 : integer
-    email 2 : string
+    id 1 : integer  [ required ]  # id is required, error if missing
+    email 2 : string  [ optional ]  # email is optional, if missing, using empty string instead
 
     .PhoneNumber {	# user defined type can be nest.
         number 0 : string
@@ -191,6 +191,7 @@ A schema text can be self-described by the sproto schema language.
         tag 3 : integer
         array 4	: boolean
         key 5 : integer # If key exists, array must be true, and it's a map.
+	required 6 : integer	# 1 (SPROTO_REQUIRED) 2 (SPROTO_OPTIONAL)
     }
     name 0 : string
     fields 1 : *field
