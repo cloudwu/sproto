@@ -165,23 +165,26 @@ encode(const struct sproto_arg *args) {
 	}
 	switch (args->type) {
 	case SPROTO_TINTEGER: {
-		lua_Integer v;
-		lua_Integer vh;
-		int isnum;
+		lua_Number v;
+		lua_Number vh;
+		lua_Number vn;
+
+		if (lua_isnumber(L, -1)) {
+			vn = lua_tonumber(L, -1);
+		}else
+		{
+			return luaL_error(L, ".%s[%d] is not an integer (Is a %s)",
+			 		args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+		}
+
 		if (args->extra) {
-			// It's decimal.
-			lua_Number vn = lua_tonumber(L, -1);
-			v = (lua_Integer)(vn * args->extra + 0.5);
+			v = vn * args->extra + 0.5;
 		} else {
-			v = lua_tointegerx(L, -1, &isnum);
-			if(!isnum) {
-				return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
-					args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
-			}
+			v = (int64_t)vn;
 		}
 		lua_pop(L,1);
 		// notice: in lua 5.2, lua_Integer maybe 52bit
-		vh = v >> 31;
+		vh = (int64_t)v >> 31;
 		if (vh == 0 || vh == -1) {
 			*(uint32_t *)args->value = (uint32_t)v;
 			return 4;
@@ -205,7 +208,7 @@ encode(const struct sproto_arg *args) {
 		size_t sz = 0;
 		const char * str;
 		if (!lua_isstring(L, -1)) {
-			return luaL_error(L, ".%s[%d] is not a string (Is a %s)", 
+			return luaL_error(L, ".%s[%d] is not a string (Is a %s)",
 				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 		} else {
 			str = lua_tolstring(L, -1, &sz);
@@ -221,7 +224,7 @@ encode(const struct sproto_arg *args) {
 		int r;
 		int top = lua_gettop(L);
 		if (!lua_istable(L, top)) {
-			return luaL_error(L, ".%s[%d] is not a table (Is a %s)", 
+			return luaL_error(L, ".%s[%d] is not a table (Is a %s)",
 				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 		}
 		sub.L = L;
@@ -234,7 +237,7 @@ encode(const struct sproto_arg *args) {
 		sub.iter_index = sub.tbl_index + 1;
 		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);
 		lua_settop(L, top-1);	// pop the value
-		if (r < 0) 
+		if (r < 0)
 			return SPROTO_CB_ERROR;
 		return r;
 	}
