@@ -62,6 +62,11 @@ static lua_Integer lua_tointegerx(lua_State *L, int idx, int *isnum) {
 
 #endif
 
+struct sproto_slice {
+	void *buffer;
+	int len;
+};
+
 static int
 lnewproto(lua_State *L) {
 	struct sproto * sp;
@@ -111,6 +116,96 @@ struct encode_ud {
 	int deep;
 	int iter_index;
 };
+
+static int
+_get_buffer(lua_State *L,struct sproto_slice* slice, int arg_start){
+	int offset;
+	int arg_end = arg_start;
+	if (lua_type(L,arg_end) == LUA_TSTRING) {
+		size_t len;
+		slice->buffer = (void *)luaL_checklstring(L,arg_end,&len);
+		slice->len = (int)len;
+		offset = luaL_checkinteger(L,++arg_end);
+		arg_end++;
+	} else {
+		slice->buffer = lua_touserdata(L,arg_end);
+		if (slice->buffer == NULL) {
+			luaL_error(L, "userdata %d is nil",arg_end);
+		}
+		slice->len = luaL_checkinteger(L,++arg_end);
+		offset = luaL_checkinteger(L,++arg_end);
+		arg_end++;
+	}
+	if(offset > slice->len){
+		return 0;
+	}
+	slice->buffer = ((char *)slice->buffer) + offset;
+	slice->len -= offset;
+	return arg_end;
+}
+
+static int
+lencode_int8(lua_State *L) {
+	struct sproto_slice slice;
+	int arg_start = _get_buffer(L, &slice, 1);
+	if(arg_start == 0){
+		lua_pushboolean(L,0);
+		return 1;
+	}
+	uint32_t value = (int)luaL_checkinteger(L,arg_start);
+	unsigned char *buffer = (unsigned char *)slice.buffer;
+	buffer[0] = (uint8_t)(value & 0xff);
+
+	lua_pushboolean(L,1);
+	return 1;
+}
+
+static int
+lencode_int16(lua_State *L) {
+	struct sproto_slice slice;
+	int arg_start = _get_buffer(L, &slice, 1);
+	if(arg_start == 0){
+		lua_pushboolean(L,0);
+		return 1;
+	}
+	uint32_t value = (int)luaL_checkinteger(L,arg_start);
+	unsigned char *buffer = (unsigned char *)slice.buffer;
+	buffer[1] = (uint8_t)(value & 0xff);
+	buffer[0] = (uint8_t)(value >> 8 & 0xff);
+
+	lua_pushboolean(L,1);
+	return 1;
+}
+
+static int
+ldecode_int8(lua_State *L) {
+	struct sproto_slice slice;
+	int arg_start = _get_buffer(L, &slice, 1);
+	if(arg_start == 0){
+		lua_pushboolean(L,0);
+		return 1;
+	}
+	unsigned char *buffer = (unsigned char *)slice.buffer;
+	uint32_t value = buffer[0];
+
+	lua_pushinteger(L, value);
+	return 1;
+}
+
+static int
+ldecode_int16(lua_State *L) {
+	struct sproto_slice slice;
+	int arg_start = _get_buffer(L, &slice, 1);
+	if(arg_start == 0){
+		lua_pushboolean(L,0);
+		return 1;
+	}
+	unsigned char *buffer = (unsigned char *)slice.buffer;
+	uint32_t value = ((uint32_t)buffer[0] << 8) + buffer[1];
+
+	lua_pushinteger(L, value);
+	return 1;
+}
 
 static int
 encode(const struct sproto_arg *args) {
@@ -703,8 +798,14 @@ luaopen_sproto_core(lua_State *L) {
 		{ "default", ldefault },
 		{ NULL, NULL },
 	};
+
 	luaL_newlib(L,l);
 	pushfunction_withbuffer(L, "encode", lencode);
+	pushfunction_withbuffer(L, "encode_int8", lencode_int8);
+	pushfunction_withbuffer(L, "encode_int16", lencode_int16);
+	pushfunction_withbuffer(L, "decode_int8", ldecode_int8);
+	pushfunction_withbuffer(L, "decode_int16", ldecode_int16);
+
 	pushfunction_withbuffer(L, "pack", lpack);
 	pushfunction_withbuffer(L, "unpack", lunpack);
 	return 1;
