@@ -627,12 +627,36 @@ encode_default(const struct sproto_arg *args) {
 	lua_pushstring(L, args->tagname);
 	if (args->index > 0) {
 		lua_newtable(L);
+		if (args->subtype) {
+			lua_pushstring(L, sproto_name(args->subtype));
+		} else {
+			const char * typename = NULL;
+			switch(args->type) {
+			case SPROTO_TINTEGER:
+				typename = (args->extra) ? "decimal" : "integer";
+				break;
+			case SPROTO_TBOOLEAN:
+				typename = "boolean";
+				break;
+			case SPROTO_TSTRING:
+				typename = (args->extra) ? "binary" : "string";
+				break;
+			default:
+				typename = "unknown";
+				break;
+			}
+			lua_pushstring(L, typename);
+		}
+		lua_setfield(L, -2, "__array");
 		lua_rawset(L, -3);
 		return SPROTO_CB_NOARRAY;
 	} else {
 		switch(args->type) {
 		case SPROTO_TINTEGER:
-			lua_pushinteger(L, 0);
+			if (args->extra)
+				lua_pushnumber(L, 0.0);
+			else
+				lua_pushinteger(L, 0);
 			break;
 		case SPROTO_TBOOLEAN:
 			lua_pushboolean(L, 0);
