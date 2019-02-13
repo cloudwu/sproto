@@ -18,7 +18,7 @@ local sp = sproto.parse [[
 
 .AddressBook {
 	person 0 : *Person(id)
-	others 1 : *Person
+	others 1 : *Person(id)
 }
 ]]
 
@@ -30,24 +30,26 @@ print("default table for Person")
 print_r(def)
 print("--------------")
 
-local ab = {
-	person = {
-		[10000] = {
-			name = "Alice",
-			id = 10000,
-			phone = {
-				{ number = "123456789" , type = 1 },
-				{ number = "87654321" , type = 2 },
-			}
-		},
-		[20000] = {
-			name = "Bob",
-			id = 20000,
-			phone = {
-				{ number = "01234567890" , type = 3 },
-			}
+local person = {
+	[10000] = {
+		name = "Alice",
+		id = 10000,
+		phone = {
+			{ number = "123456789" , type = 1 },
+			{ number = "87654321" , type = 2 },
 		}
 	},
+	[20000] = {
+		name = "Bob",
+		id = 20000,
+		phone = {
+			{ number = "01234567890" , type = 3 },
+		}
+	}
+}
+
+local ab = {
+	person = setmetatable({}, { __index = person, __pairs = function() return next, person, nil end }),
 	others = {
 		{
 			name = "Carol",
