@@ -55,6 +55,13 @@ static int64_t lua_tointegerx(lua_State *L, int idx, int *isnum) {
 		return 0;
 	}
 }
+
+static int lua_absindex (lua_State *L, int idx) {
+	if (idx > 0 || idx <= LUA_REGISTRYINDEX)
+		return idx;
+	return lua_gettop(L) + idx + 1;
+}
+
 #endif
 
 static void
