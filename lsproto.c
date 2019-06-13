@@ -48,8 +48,8 @@ LUALIB_API void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 static int64_t lua_tointegerx(lua_State *L, int idx, int *isnum) {
 	if (lua_isnumber(L, idx)) {
 		if (isnum) *isnum = 1;
-        return (int64_t)lua_tonumber(L, idx);
-    }
+		return (int64_t)lua_tonumber(L, idx);
+	}
 	else {
 		if (isnum) *isnum = 0;
 		return 0;
