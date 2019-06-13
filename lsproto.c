@@ -57,6 +57,11 @@ static int64_t lua_tointegerx(lua_State *L, int idx, int *isnum) {
 }
 #endif
 
+#if LUA_VERSION_NUM <= 501
+// work around , use push & lua_gettable may be better
+#define lua_geti lua_rawgeti
+#define lua_seti lua_rawseti
+#else
 static void
 lua_geti(lua_State *L, int index, lua_Integer i) {
 	index = lua_absindex(L, index);
@@ -71,6 +76,8 @@ lua_seti(lua_State *L, int index, lua_Integer n) {
 	lua_insert(L, -2);
 	lua_settable(L, index);
 }
+
+#endif
 
 #endif
 
@@ -391,7 +398,9 @@ decode(const struct sproto_arg *args) {
 			lua_pushnumber(L, vn);
 		} else {
 			int64_t v = *(int64_t*)args->value;
-			lua_pushinteger(L, v);
+			//lua_pushinteger(L, v);
+			lua_Number vn = (lua_Number)v;
+			lua_pushnumber(L, vn);
 		}
 		break;
 	}
