@@ -1,5 +1,5 @@
 Introduction
-======
+============
 
 Sproto is an efficient serialization library for C, and focuses on lua binding. It's like Google protocol buffers, but much faster.
 
