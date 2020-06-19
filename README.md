@@ -232,6 +232,39 @@ I have been using Google protocol buffers for many years in many projects, and I
 
 In lua, enum types are not very useful. You can use integer to define an enum table in lua.
 
+Namespace
+========
+
+`Namespace` is optional. If you declare namespace in one file, everything defined in it would be suffixed with namespace in format `name@namespace`.
+
+To declare namespace, just put the declaration in the first line, like
+
+```
+namespace foobar
+
+.foo {
+  what 0 : integer
+}
+```
+
+To refer a name in another namespace, use format `name@namespace`, like
+
+```
+namespace deadbeaf
+
+.pork {
+   weight 0 : integer
+}
+
+.beaf {
+   moo 0 : foo@foobar
+   p   1 : pork
+}
+
+```
+
+Note: check `testns.lua` to see full example.
+
 Wire protocol
 ========
 

@@ -67,7 +67,7 @@ local alpha = R"az" + R"AZ" + "_"
 local alnum = alpha + R"09"
 local word = alpha * alnum ^ 0
 local name = C(word)
-local typename = C(word * ("." * word) ^ 0)
+local typename = C( word * (("." * word) ^ 0) * ("@" * word)^-1)
 local tag = R"09" ^ 1 / tonumber
 local mainkey = "(" * blank0 * name * blank0 * ")"
 local decimal = "(" * blank0 * C(tag) * blank0 * ")"
@@ -92,9 +92,26 @@ local typedef = P {
 
 local proto = blank0 * typedef * blank0
 
+local buildin_types = {
+	integer = 0,
+	boolean = 1,
+	string = 2,
+	binary = 2,	-- binary is a sub type of string
+}
+
+local function nsname(ns, name)
+    if buildin_types[name] then
+        return name
+    end
+    if not ns or name:find("@") then
+        return name
+    end
+    return name .. "@" .. ns
+end
+
 local convert = {}
 
-function convert.protocol(all, obj)
+function convert.protocol(all, obj, ns)
 	local result = { tag = obj[2] }
 	for _, p in ipairs(obj[3]) do
 		local pt = p[1]
@@ -104,21 +121,21 @@ function convert.protocol(all, obj)
 		local typename = p[2]
 		if type(typename) == "table" then
 			local struct = typename
-			typename = obj[1] .. "." .. p[1]
-			all.type[typename] = convert.type(all, { typename, struct })
+			typename = nsname(ns, obj[1] .. "." .. p[1])
+			all.type[typename] = convert.type(all, { typename, struct },ns)
 		end
 		if typename == "nil" then
 			if p[1] == "response" then
 				result.confirm = true
 			end
 		else
-			result[p[1]] = typename
+			result[p[1]] = nsname(ns, typename)
 		end
 	end
 	return result
 end
 
-function convert.type(all, obj)
+function convert.type(all, obj, ns)
 	local result = {}
 	local typename = obj[1]
 	local tags = {}
@@ -151,48 +168,44 @@ function convert.type(all, obj)
 					field.key = mainkey
 				end
 			end
-			field.typename = fieldtype
+			field.typename = nsname(ns,fieldtype)
 		else
 			assert(f.type == "type")	-- nest type
-			local nesttypename = typename .. "." .. f[1]
+			local nesttypename = nsname(ns, typename .. "." .. f[1])
 			f[1] = nesttypename
 			assert(all.type[nesttypename] == nil, "redefined " .. nesttypename)
-			all.type[nesttypename] = convert.type(all, f)
+			all.type[nesttypename] = convert.type(all, f, ns)
 		end
 	end
 	table.sort(result, function(a,b) return a.tag < b.tag end)
 	return result
 end
 
-local function adjust(r)
-	local result = { type = {} , protocol = {} }
-
+local function adjust(r, ns, result)
 	for _, obj in ipairs(r) do
 		local set = result[obj.type]
-		local name = obj[1]
+		local name = nsname(ns, obj[1])
 		assert(set[name] == nil , "redefined " .. name)
-		set[name] = convert[obj.type](result,obj)
+		set[name] = convert[obj.type](result,obj,ns)
 	end
-
-	return result
 end
 
-local buildin_types = {
-	integer = 0,
-	boolean = 1,
-	string = 2,
-	binary = 2,	-- binary is a sub type of string
-}
 
 local function checktype(types, ptype, t)
 	if buildin_types[t] then
 		return t
 	end
-	local fullname = ptype .. "." .. t
+    local ns = ptype:match("@(.*)")
+    local fullname
+    if ns then
+        fullname = ptype:match("(.*)@") .. "." .. t:match("(.*)@") .. "@" .. ns
+    else
+        fullname = ptype .. "." .. t
+    end
 	if types[fullname] then
 		return fullname
 	else
-		ptype = ptype:match "(.+)%..+$"
+        ptype = ptype:match "(.+)%..+$"
 		if ptype then
 			return checktype(types, ptype, t)
 		elseif types[t] then
@@ -242,10 +255,10 @@ local function flattypename(r)
 	return r
 end
 
-local function parser(text,filename)
+local function parser(text,filename,ns,result)
 	local state = { file = filename, pos = 0, line = 1 }
 	local r = lpeg.match(proto * -1 + exception , text , 1, state )
-	return flattypename(check_protocol(adjust(r)))
+	adjust(r,ns,result)
 end
 
 --[[
@@ -483,9 +496,26 @@ function sparser.dump(str)
 end
 
 function sparser.parse(text, name)
-	local r = parser(text, name or "=text")
-	local data = encodeall(r)
-	return data
+	local result = { type = {} , protocol = {} }
+    if type(text) == "string" then
+        parser(text, name or "=text", nil, result)
+    else
+        local t = {}
+        for name,txt in pairs(text) do
+            local _,length,namespace = txt:find("^namespace[ \t]+([%w_]+)\n")
+            if length then
+                if t[namespace] then
+                    error(string.format("duplicate defined namespace [%s] in file: %s",namespace,name))
+                end
+                t[namespace] = true
+                txt = txt:sub(length+1) -- rm namespace declaration
+            end
+            parser(txt,name,namespace,result)
+        end
+    end
+
+	local r = flattypename(check_protocol(result))
+    return encodeall(r)
 end
 
 return sparser
