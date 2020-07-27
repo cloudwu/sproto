@@ -7,6 +7,7 @@ local sp = sproto.parse [[
 	name 0 : string
 	id 1 : integer
 	email 2 : string
+	real 4: double
 
 	.PhoneNumber {
 		number 0 : string
@@ -56,7 +57,8 @@ local ab = {
 			id = 30000,
 			phone = {
 				{ number = "9876543210" },
-			}
+			},
+			real = 1234.56789,
 		},
 	}
 }
