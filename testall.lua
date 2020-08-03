@@ -20,6 +20,8 @@ local sp = sproto.parse [[
 	h 7 : *foobar
 	i 8 : *integer(2)
 	j 9 : binary
+	k 10: double
+	l 11: *double
 }
 ]]
 
@@ -58,6 +60,8 @@ local obj = {
 	},
 	i = { 1,2.1,3.21,4.321 },
 	j = "\0\1\2\3",
+	k = 12.34567,
+	l = {11.1, 22.2, 33.3, 44.4},
 }
 
 local code = sp:encode("foobar", obj)
