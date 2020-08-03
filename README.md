@@ -165,6 +165,7 @@ The schema text is like this:
     phone 3 : *PhoneNumber	# *PhoneNumber means an array of PhoneNumber.
     height 4 : integer(2)	# (2) means a 1/100 fixed-point number.
     data 5 : binary		# Some binary data
+    weight 6 : double   # floating number
 }
 
 .AddressBook {
@@ -216,6 +217,7 @@ Types
 * **string** : string
 * **binary** : binary string (it's a sub type of string)
 * **integer** : integer, the max length of an integer is signed 64bit. It can be a fixed-point number with specified precision.
+* **double** : double, floating-point number.
 * **boolean** : true or false
 
 You can add * before the typename to declare an array. 
