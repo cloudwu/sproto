@@ -264,7 +264,7 @@ end
 		tag	3 :	integer
 		array 4	: boolean
 		key 5 : integer # If key exists, array must be true
-		map 6 : boolean # Interpreted two fields struct as map when decoding
+		map 6 : boolean # Interpret two fields struct as map when decoding
 	}
 	name 0 : string
 	fields 1 : *field
@@ -349,25 +349,25 @@ local function packtype(name, t, alltypes)
 		if f.key then
 			assert(f.array)
 			if f.key == "" then
-				local min_t = math.maxinteger
+				tmp.map = 1
 				local c = 0
-				for _, t in pairs(subtype.fields) do
+				local min_t = math.maxinteger
+				for n, t in pairs(subtype.fields) do
 					c = c + 1
-					if t < min_t then
-						min_t = t
+					if t.tag < min_t then
+						min_t = t.tag
+						f.key = n
 					end
 				end
-				if c > 2 then
-					error(string.format("Invalid map definition: %s, more than two fields", tmp.name))
+				if c ~= 2 then
+					error(string.format("Invalid map definition: %s, must only have two fields", tmp.name))
 				end
-				tmp.map = 1
-				tmp.key = min_t
-			else
-				tmp.key = subtype.fields[f.key]
 			end
-			if not tmp.key then
+			local stfield = subtype.fields[f.key]
+			if not stfield or not stfield.buildin then
 				error("Invalid map index :" .. f.key)
 			end
+			tmp.key = stfield.tag
 		else
 			tmp.key = nil
 		end
@@ -445,9 +445,10 @@ local function packgroup(t,p)
 	for idx, name in ipairs(alltypes) do
 		local fields = {}
 		for _, type_fields in ipairs(t[name]) do
-			if buildin_types[type_fields.typename] then
-				fields[type_fields.name] = type_fields.tag
-			end
+			fields[type_fields.name] = {
+				tag = type_fields.tag,
+				buildin = buildin_types[type_fields.typename]
+			}
 		end
 		alltypes[name] = { id = idx - 1, fields = fields }
 	end

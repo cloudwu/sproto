@@ -494,7 +494,13 @@ decode(const struct sproto_arg *args) {
 				return r;
 			if (map) {
 				lua_getfield(L, sub.result_index, args->ktagname);
+				if (lua_isnil(L, -1)) {
+					luaL_error(L, "Can't find key field in [%s]", args->tagname);
+				}
 				lua_getfield(L, sub.result_index, args->vtagname);
+				if (lua_isnil(L, -1)) {
+					luaL_error(L, "Can't find value field in [%s]", args->tagname);
+				}
 				lua_settable(L, self->array_index);
 				lua_settop(L, sub.result_index);
 			} else {
