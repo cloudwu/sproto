@@ -494,46 +494,42 @@ sproto_release(struct sproto * s) {
 	pool_release(&s->memory);
 }
 
+static const char *
+get_typename(int type, struct field *f) {
+	if (type == SPROTO_TSTRUCT) {
+		return f->st->name;
+	} else {
+		switch (type) {
+		case SPROTO_TINTEGER:
+			if (f->extra)
+				return "decimal";
+			else
+				return "integer";
+		case SPROTO_TBOOLEAN:
+			return "boolean";
+		case SPROTO_TSTRING:
+			if (f->extra == SPROTO_TSTRING_BINARY)
+				return "binary";
+			else
+				return "string";
+		case SPROTO_TDOUBLE:
+			return "double";
+		default:
+			return "invalid";
+		}
+	}
+}
+
 void
 sproto_dump(struct sproto *s) {
 	int i,j;
 	printf("=== %d types ===\n", s->type_n);
-
-#define TYPENAME(TYPE, F, RET) \
-	if (TYPE == SPROTO_TSTRUCT) { \
-		RET = (F)->st->name; \
-	} else { \
-		switch (TYPE) { \
-		case SPROTO_TINTEGER: \
-			if ((F)->extra) \
-				RET = "decimal"; \
-			else \
-				RET = "integer"; \
-			break; \
-		case SPROTO_TBOOLEAN: \
-			RET = "boolean"; \
-			break; \
-		case SPROTO_TSTRING: \
-			if ((F)->extra == SPROTO_TSTRING_BINARY) \
-				RET = "binary"; \
-			else \
-				RET = "string"; \
-			break; \
-		case SPROTO_TDOUBLE: \
-			RET = "double"; \
-			break; \
-		default: \
-			RET = "invalid"; \
-			break; \
-		} \
-	}
-
 	for (i=0;i<s->type_n;i++) {
 		struct sproto_type *t = &s->type[i];
 		printf("%s\n", t->name);
 		for (j=0;j<t->n;j++) {
 			char container[2] = { 0, 0 };
-			const char * type_name = NULL;
+			const char * typename = NULL;
 			struct field *f = &t->f[j];
 			int type = f->type & ~SPROTO_TARRAY;
 			if (f->type & SPROTO_TARRAY) {
@@ -541,21 +537,20 @@ sproto_dump(struct sproto *s) {
 			} else {
 				container[0] = 0;
 			}
-			TYPENAME(type, f, type_name)
-			printf("\t%s (%d) %s%s", f->name, f->tag, container, type_name);
+			typename = get_typename(type, f);
+			printf("\t%s (%d) %s%s", f->name, f->tag, container, typename);
 			if (type == SPROTO_TINTEGER && f->extra > 0) {
 				printf("(%d)", f->extra);
 			}
 			if (f->key >= 0) {
 				printf(" key[%d]", f->key);
-			}
-			if (f->map >= 0) {
-				printf(" value[%d]", f->st->f[1].tag);
+				if (f->map >= 0) {
+					printf(" value[%d]", f->st->f[1].tag);
+				}
 			}
 			printf("\n");
 		}
 	}
-#undef TYPENAME
 
 	printf("=== %d protocol ===\n", s->protocol_n);
 	for (i=0;i<s->protocol_n;i++) {
