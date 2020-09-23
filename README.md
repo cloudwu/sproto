@@ -220,15 +220,19 @@ Types
 * **double** : double, floating-point number.
 * **boolean** : true or false
 
-You can add * before the typename to declare an array. 
+You can add * before the typename to declare an array.
 
-You can also specify a main index, the array whould be encode as an unordered map.
+You can also specify a main index with the syntax likes `*array(id)`, the array would be encode as an unordered map with the `id` field as key.
+
+For empty main index likes `*array()`, the array would be encoded as an unordered map with the first field as key and the second field as value.
 
 User defined type can be any name in alphanumeric characters except the build-in typenames, and nested types are supported.
 
 * Where are double or real types?
 
 I have been using Google protocol buffers for many years in many projects, and I found the real types were seldom used. If you really need it, you can use string to serialize the double numbers. When you need decimal, you can specify the fixed-point presision.
+
+**NOTE** : `double` is supported now.
 
 * Where is enum?
 
