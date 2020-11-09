@@ -68,8 +68,8 @@ local obj = {
 	k = 12.34567,
 	l = {11.1, 22.2, 33.3, 44.4},
 	m = {
-		a = {a = 1, b = false, c = 5, d = 6},
-		c = {a = 2, b = true, c = 6, d = 7},
+		a = {a = "str1", b = false, c = 5, d = 6},
+		c = {a = "str2", b = true, c = 6, d = 7},
 	}
 }
 
