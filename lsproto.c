@@ -102,10 +102,11 @@ tobooleanx (lua_State *L, int idx, int *isbool) {
 
 static const char *
 tolstringx (lua_State *L, int idx, size_t *len, int *isstring) {
-	const char * str = lua_tolstring(L, idx, len);
+	const char * str = luaL_tolstring(L, idx, len); // call metamethod, '__tostring' must return a string
 	if (isstring) {
-		*isstring = (str != NULL);
+		*isstring = 1;
 	}
+	lua_pop(L, 1);
 	return str;
 }
 
