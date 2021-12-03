@@ -278,8 +278,8 @@ Notice more: all exampless is tested in `test_wire_protocol.lua`, update `test_w
 	bools 1 : *boolean
 	number 2 : integer
 	bignumber 3 : integer
-    double 4 : double
-    doubles 5 : *double
+ 	double 4 : double
+ 	doubles 5 : *double
     fpn 6 : integer(2)
 }
 ```
