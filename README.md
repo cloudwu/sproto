@@ -280,7 +280,7 @@ Notice more: all examples are tested in `test_wire_protocol.lua`, update `test_w
 	bignumber 3 : integer
  	double 4 : double
  	doubles 5 : *double
- 	dfpn 6 : integer(2)
+ 	fpn 6 : integer(2)
 }
 ```
 
