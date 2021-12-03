@@ -263,7 +263,7 @@ For integer array, an additional byte (4 or 8) to indicate the value is 32bit or
 Read the examples below to see more details.
 
 Notice: If the tag is not declared in schema, the decoder will simply ignore the field for protocol version compatibility.
-Notice more: all exampless is tested in `test_wire_protocol.lua`, update `test_wire_protocol.lua` when update examples.
+Notice more: all examples are tested in `test_wire_protocol.lua`, update `test_wire_protocol.lua` when update examples.
 
 ```
 .Person {
