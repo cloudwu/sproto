@@ -613,7 +613,7 @@ getbuffer(lua_State *L, int index, size_t *sz) {
 /*
 	lightuserdata sproto_type
 	string source	/  (lightuserdata , integer)
-	return table
+	return table, sz(decoded bytes)
  */
 static int
 ldecode(lua_State *L) {
