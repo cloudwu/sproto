@@ -242,8 +242,8 @@ get_encodefield(const struct sproto_arg *args) {
 				self->iter_table = top - 1;
 				self->iter_key = top;
 			} else if (!lua_istable(L,self->array_index)) {
-				return luaL_error(L, ".*%s(%d) should be a table or an userdata with metamethods (Is a %s)",
-					args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+				return luaL_error(L, "%s.%s(%d) should be a table or an userdata with metamethods (Is a %s)",
+					sproto_name(self->st), args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 			} else {
 				lua_pushnil(L);
 				self->iter_func = 0;
@@ -296,8 +296,8 @@ encode_one(const struct sproto_arg *args, struct encode_ud *self) {
 		} else {
 			v = tointegerx(L, -1, &isnum);
 			if(!isnum) {
-				return luaL_error(L, ".%s[%d] is not an integer (Is a %s)", 
-					args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+				return luaL_error(L, "%s.%s[%d] is not an integer (Is a %s)",
+					sproto_name(self->st), args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 			}
 		}
 		lua_pop(L,1);
@@ -321,8 +321,8 @@ encode_one(const struct sproto_arg *args, struct encode_ud *self) {
 		int isbool;
 		int v = tobooleanx(L, -1, &isbool);
 		if (!isbool) {
-			return luaL_error(L, ".%s[%d] is not a boolean (Is a %s)",
-				args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
+			return luaL_error(L, "%s.%s[%d] is not a boolean (Is a %s)",
+				sproto_name(self->st), args->tagname, args->index, lua_typename(L, lua_type(L, -1)));
 		}
 		*(int *)args->value = v;
 		lua_pop(L,1);
@@ -334,8 +334,8 @@ encode_one(const struct sproto_arg *args, struct encode_ud *self) {
 		int type = lua_type(L, -1); // get the type firstly, lua_tolstring may convert value on stack to string
 		const char * str = tolstringx(L, -1, &sz, &isstring);
 		if (!isstring) {
-			return luaL_error(L, ".%s[%d] is not a string (Is a %s)", 
-				args->tagname, args->index, lua_typename(L, type));
+			return luaL_error(L, "%s.%s[%d] is not a string (Is a %s)",
+				sproto_name(self->st), args->tagname, args->index, lua_typename(L, type));
 		}
 		if (sz > args->length)
 			return SPROTO_CB_ERROR;
