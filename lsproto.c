@@ -389,12 +389,19 @@ encode(const struct sproto_arg *args) {
 
 static void *
 expand_buffer(lua_State *L, int osz, int nsz) {
+	// assert(osz > 0 && osz < nsz)
 	if (luai_unlikely(nsz > ENCODE_MAXSIZE)) {
 		luaL_error(L, "object is too large (>%d)", ENCODE_MAXSIZE);
 		return NULL;
 	}
 
-	osz *= 2;
+	// osz = osz * 1.5
+	// factor > 1.618... never reuse alloced space
+	// factor = 1.3, reuse after 3 steps
+	// factor = 1.4, reuse after 4 steps
+	// factor = 1.5, reuse after 5 steps
+	// factor = 1.6, reuse after 8 steps
+	osz += osz >> 1;
 	if (osz < nsz) {
 		osz = nsz;
 	} else if (osz > ENCODE_MAXSIZE) {
