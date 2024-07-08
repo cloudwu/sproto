@@ -359,7 +359,7 @@ encode_one(const struct sproto_arg *args, struct encode_ud *self) {
 		sub.iter_key = 0;
 		r = sproto_encode(args->subtype, args->value, args->length, encode, &sub);
 		lua_settop(L, top-1);	// pop the value
-		if (r < 0) 
+		if (r < 0)
 			return SPROTO_CB_ERROR;
 		return r;
 	}
@@ -389,15 +389,26 @@ encode(const struct sproto_arg *args) {
 
 static void *
 expand_buffer(lua_State *L, int osz, int nsz) {
-	void *output;
-	do {
-		osz *= 2;
-	} while (osz < nsz);
-	if (osz > ENCODE_MAXSIZE) {
+	// assert(osz > 0 && osz < nsz)
+	if (luai_unlikely(nsz > ENCODE_MAXSIZE)) {
 		luaL_error(L, "object is too large (>%d)", ENCODE_MAXSIZE);
 		return NULL;
 	}
-	output = lua_newuserdata(L, osz);
+
+	// osz = osz * 1.5
+	// factor > 1.618... never reuse alloced space
+	// factor = 1.3, reuse after 3 steps
+	// factor = 1.4, reuse after 4 steps
+	// factor = 1.5, reuse after 5 steps
+	// factor = 1.6, reuse after 8 steps
+	osz += osz >> 1;
+	if (osz < nsz) {
+		osz = nsz;
+	} else if (osz > ENCODE_MAXSIZE) {
+		osz = ENCODE_MAXSIZE;
+	}
+
+	void *output = lua_newuserdata(L, osz);
 	lua_replace(L, lua_upvalueindex(1));
 	lua_pushinteger(L, osz);
 	lua_replace(L, lua_upvalueindex(2));
@@ -440,8 +451,9 @@ lencode(lua_State *L) {
 
 		r = sproto_encode(st, buffer, sz, encode, &self);
 		if (r<0) {
-			buffer = expand_buffer(L, sz, sz*2);
-			sz *= 2;
+			// nsz > osz to double sz
+            buffer = expand_buffer(L, sz, sz + 1);
+			sz = lua_tointeger(L, lua_upvalueindex(2));
 		} else {
 			lua_pushlstring(L, buffer, r);
 			return 1;
