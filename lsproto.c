@@ -315,6 +315,7 @@ encode_one(const struct sproto_arg *args, struct encode_ud *self) {
 	case SPROTO_TDOUBLE: {
 		lua_Number v = lua_tonumber(L, -1);
 		*(double*)args->value = (double)v;
+		lua_pop(L,1);
 		return 8;
 	}
 	case SPROTO_TBOOLEAN: {
