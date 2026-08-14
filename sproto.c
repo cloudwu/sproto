@@ -118,7 +118,10 @@ toword(const uint8_t * p) {
 
 static inline uint32_t
 todword(const uint8_t *p) {
-	return p[0] | p[1]<<8 | p[2]<<16 | p[3]<<24;
+	return (uint32_t)p[0] |
+		(uint32_t)p[1] << 8 |
+		(uint32_t)p[2] << 16 |
+		(uint32_t)p[3] << 24;
 }
 
 static int
@@ -131,7 +134,8 @@ count_array(const uint8_t * stream) {
 		if (length < SIZEOF_LENGTH)
 			return -1;
 		nsz = todword(stream);
-		nsz += SIZEOF_LENGTH;
+		stream += SIZEOF_LENGTH;
+		length -= SIZEOF_LENGTH;
 		if (nsz > length)
 			return -1;
 		++n;
@@ -163,10 +167,12 @@ struct_field(const uint8_t * stream, size_t sz) {
 		if (sz < SIZEOF_LENGTH)
 			return -1;
 		dsz = todword(stream);
-		if (sz < SIZEOF_LENGTH + dsz)
+		stream += SIZEOF_LENGTH;
+		sz -= SIZEOF_LENGTH;
+		if (dsz > sz)
 			return -1;
-		stream += SIZEOF_LENGTH + dsz;
-		sz -= SIZEOF_LENGTH + dsz;
+		stream += dsz;
+		sz -= dsz;
 	}
 
 	return fn;
@@ -175,7 +181,9 @@ struct_field(const uint8_t * stream, size_t sz) {
 static const char *
 import_string(struct sproto *s, const uint8_t * stream) {
 	uint32_t sz = todword(stream);
-	char * buffer = pool_alloc(&s->memory, sz+1);
+	char * buffer = pool_alloc(&s->memory, (size_t)sz + 1);
+	if (buffer == NULL)
+		return NULL;
 	memcpy(buffer, stream+SIZEOF_LENGTH, sz);
 	buffer[sz] = '\0';
 	return buffer;
@@ -316,10 +324,12 @@ import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 	memset(t, 0, sizeof(*t));
 	stream += SIZEOF_HEADER + fn * SIZEOF_FIELD;
 	t->name = import_string(s, stream);
+	if (t->name == NULL)
+		return NULL;
 	if (fn == 1) {
 		return result;
 	}
-	stream += todword(stream)+SIZEOF_LENGTH;	// second data
+	stream += (size_t)todword(stream)+SIZEOF_LENGTH;	// second data
 	n = count_array(stream);
 	if (n<0)
 		return NULL;
@@ -451,7 +461,7 @@ create_from_bundle(struct sproto *s, const uint8_t * stream, size_t sz) {
 			s->protocol_n = n;
 			s->proto = pool_alloc(&s->memory, n * sizeof(*s->proto));
 		}
-		content += todword(content) + SIZEOF_LENGTH;
+		content += (size_t)todword(content) + SIZEOF_LENGTH;
 	}
 
 	for (i=0;i<s->type_n;i++) {
@@ -1200,10 +1210,10 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 			if (size < SIZEOF_LENGTH)
 				return -1;
 			sz = todword(datastream);
-			if (size < sz + SIZEOF_LENGTH)
+			if (sz > (uint32_t)(size - SIZEOF_LENGTH))
 				return -1;
-			datastream += sz+SIZEOF_LENGTH;
-			size -= sz+SIZEOF_LENGTH;
+			datastream += SIZEOF_LENGTH + sz;
+			size -= SIZEOF_LENGTH + sz;
 		}
 		f = findtag(st, tag);
 		if (f == NULL)
