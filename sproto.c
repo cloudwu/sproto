@@ -116,18 +116,18 @@ toword(const uint8_t * p) {
 	return p[0] | p[1]<<8;
 }
 
-static inline uint32_t
+static inline size_t
 todword(const uint8_t *p) {
 	return p[0] | p[1]<<8 | p[2]<<16 | p[3]<<24;
 }
 
 static int
 count_array(const uint8_t * stream) {
-	uint32_t length = todword(stream);
+	size_t length = todword(stream);
 	int n = 0;
 	stream += SIZEOF_LENGTH;
 	while (length > 0) {
-		uint32_t nsz;
+		size_t nsz;
 		if (length < SIZEOF_LENGTH)
 			return -1;
 		nsz = todword(stream);
@@ -157,7 +157,7 @@ struct_field(const uint8_t * stream, size_t sz) {
 	stream += header;
 	for (i=0;i<fn;i++) {
 		int value= toword(field + i * SIZEOF_FIELD);
-		uint32_t dsz;
+		size_t dsz;
 		if (value != 0)
 			continue;
 		if (sz < SIZEOF_LENGTH)
@@ -174,7 +174,7 @@ struct_field(const uint8_t * stream, size_t sz) {
 
 static const char *
 import_string(struct sproto *s, const uint8_t * stream) {
-	uint32_t sz = todword(stream);
+	size_t sz = todword(stream);
 	char * buffer = pool_alloc(&s->memory, sz+1);
 	memcpy(buffer, stream+SIZEOF_LENGTH, sz);
 	buffer[sz] = '\0';
@@ -195,7 +195,7 @@ calc_pow(int base, int n) {
 
 static const uint8_t *
 import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
-	uint32_t sz;
+	size_t sz;
 	const uint8_t * result;
 	int fn;
 	int i;
@@ -296,7 +296,7 @@ import_field(struct sproto *s, struct field *f, const uint8_t * stream) {
 static const uint8_t *
 import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 	const uint8_t * result;
-	uint32_t sz = todword(stream);
+	size_t sz = todword(stream);
 	int i;
 	int fn;
 	int n;
@@ -362,7 +362,7 @@ import_type(struct sproto *s, struct sproto_type *t, const uint8_t * stream) {
 static const uint8_t *
 import_protocol(struct sproto *s, struct protocol *p, const uint8_t * stream) {
 	const uint8_t * result;
-	uint32_t sz = todword(stream);
+	size_t sz = todword(stream);
 	int fn;
 	int i;
 	int tag;
@@ -1057,7 +1057,7 @@ sproto_encode(const struct sproto_type *st, void * buffer, int size, sproto_call
 
 static int
 decode_array_object(sproto_callback cb, struct sproto_arg *args, uint8_t * stream, int sz) {
-	uint32_t hsz;
+	size_t hsz;
 	int index = 1;
 	while (sz > 0) {
 		if (sz < SIZEOF_LENGTH)
@@ -1099,7 +1099,7 @@ decode_empty_array(sproto_callback cb, struct sproto_arg *args) {
 
 static int
 decode_array(sproto_callback cb, struct sproto_arg *args, uint8_t * stream) {
-	uint32_t sz = todword(stream);
+	size_t sz = todword(stream);
 	int type = args->type;
 	int i;
 	if (sz == 0) {
@@ -1196,7 +1196,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 		value = value/2 - 1;
 		currentdata = datastream;
 		if (value < 0) {
-			uint32_t sz;
+			size_t sz;
 			if (size < SIZEOF_LENGTH)
 				return -1;
 			sz = todword(datastream);
@@ -1231,7 +1231,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 				switch (f->type) {
 				case SPROTO_TDOUBLE:
 				case SPROTO_TINTEGER: {
-					uint32_t sz = todword(currentdata);
+					size_t sz = todword(currentdata);
 					if (sz == SIZEOF_INT32) {
 						uint64_t v = expand64(todword(currentdata + SIZEOF_LENGTH));
 						args.value = &v;
@@ -1240,8 +1240,8 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 					} else if (sz != SIZEOF_INT64) {
 						return -1;
 					} else {
-						uint32_t low = todword(currentdata + SIZEOF_LENGTH);
-						uint32_t hi = todword(currentdata + SIZEOF_LENGTH + SIZEOF_INT32);
+						size_t low = todword(currentdata + SIZEOF_LENGTH);
+						size_t hi = todword(currentdata + SIZEOF_LENGTH + SIZEOF_INT32);
 						uint64_t v = (uint64_t)low | (uint64_t) hi << 32;
 						args.value = &v;
 						args.length = sizeof(v);
@@ -1251,7 +1251,7 @@ sproto_decode(const struct sproto_type *st, const void * data, int size, sproto_
 				}
 				case SPROTO_TSTRING:
 				case SPROTO_TSTRUCT: {
-					uint32_t sz = todword(currentdata);
+					size_t sz = todword(currentdata);
 					args.value = currentdata+SIZEOF_LENGTH;
 					args.length = sz;
 					if (cb(&args))

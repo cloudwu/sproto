@@ -48,7 +48,7 @@ struct sproto_arg {
 	int type;
 	struct sproto_type *subtype;
 	void *value;
-	int length;
+	size_t length;
 	int index;	// array base 1, negative value indicates that it is a empty array
 	int mainindex;	// for map
 	int extra; // SPROTO_TINTEGER: decimal ; SPROTO_TSTRING 0:utf8 string 1:binary
